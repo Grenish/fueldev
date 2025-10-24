@@ -11,10 +11,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { ResendVerificationButton } from "./_components/resend-verification-button";
+
+// Force dynamic rendering and disable caching to always show fresh data
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function HomePage() {
   const session = await auth.api.getSession({
     headers: await headers(),
+    query: {
+      disableCookieCache: true,
+    },
   });
 
   if (!session) {
@@ -33,6 +43,28 @@ export default async function HomePage() {
             Welcome back! Manage your account and settings.
           </p>
         </div>
+
+        {/* Email Verification Alert */}
+        {!user.emailVerified && (
+          <Alert
+            variant="default"
+            className="border-amber-500 bg-amber-50 dark:bg-amber-950/20"
+          >
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-900 dark:text-amber-100">
+              Email Verification Required
+            </AlertTitle>
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <span>
+                  Please verify your email address to access all features. Check
+                  your inbox for the verification link.
+                </span>
+                <ResendVerificationButton email={user.email} />
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* User Details Card */}
         <Card>
@@ -79,12 +111,10 @@ export default async function HomePage() {
                 </span>
                 <span className="col-span-2 text-sm">
                   {user.emailVerified ? (
-                    <span className="text-green-600 font-medium">
-                      ✓ Verified
-                    </span>
+                    <span className="text-green-600 font-medium">Verified</span>
                   ) : (
                     <span className="text-amber-600 font-medium">
-                      ⚠ Not verified
+                      Not verified
                     </span>
                   )}
                 </span>
