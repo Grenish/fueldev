@@ -13,7 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { ResendVerificationButton } from "./_components/resend-verification-button";
+import { ResendVerificationButton } from "../../../components/resend-verification-button";
 
 // Force dynamic rendering and disable caching to always show fresh data
 export const dynamic = "force-dynamic";
