@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
-export function ResetPasswordForm({
+function ResetPasswordFormContent({
   className,
   ...props
 }: React.ComponentProps<"form">) {
@@ -183,4 +183,11 @@ export function ResetPasswordForm({
       </FieldGroup>
     </form>
   );
+}
+
+export function ResetPasswordForm({
+  className,
+  ...props
+}: React.ComponentProps<"form">) {
+  return <ResetPasswordFormContent className={className} {...props} />;
 }
