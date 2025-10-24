@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { Spinner } from "./ui/spinner";
 
 export function LoginForm({
   className,
@@ -122,7 +123,14 @@ export function LoginForm({
 
         <Field>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? (
+              <>
+                <Spinner />
+                Logging in...
+              </>
+            ) : (
+              "Login"
+            )}
           </Button>
         </Field>
 
