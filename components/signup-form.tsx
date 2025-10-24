@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { Spinner } from "./ui/spinner";
 
 export function SignupForm({
   className,
@@ -143,7 +144,14 @@ export function SignupForm({
 
         <Field>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Create Account"}
+            {isLoading ? (
+              <>
+                <Spinner />
+                Creating account...
+              </>
+            ) : (
+              "Create Account"
+            )}
           </Button>
         </Field>
 
