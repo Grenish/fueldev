@@ -2,13 +2,14 @@ import { GalleryVerticalEnd } from "lucide-react";
 import { Suspense } from "react";
 
 import { LoginForm } from "@/components/login-form";
+import { Spinner } from "@/components/ui/spinner";
 
 function LoginFormSuspense() {
   return (
     <Suspense
       fallback={
         <div className="flex items-center justify-center w-full max-w-xs h-64">
-          Loading...
+          <Spinner />
         </div>
       }
     >
