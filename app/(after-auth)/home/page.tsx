@@ -13,11 +13,10 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { ResendVerificationButton } from "../../../components/resend-verification-button";
+import { ResendVerificationButton } from "@/components/resend-verification-button";
 
 // Force dynamic rendering and disable caching to always show fresh data
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function HomePage() {
   const session = await auth.api.getSession({
@@ -153,7 +152,7 @@ export default async function HomePage() {
                   Session ID:
                 </span>
                 <span className="col-span-2 font-mono text-xs">
-                  {session.session.id}
+                  {"••••••" + String(session.session.id).slice(-6)}
                 </span>
               </div>
 
