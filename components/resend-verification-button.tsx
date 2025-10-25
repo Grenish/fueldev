@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Mail, Loader2, CheckCircle2 } from "lucide-react";
 
@@ -11,6 +12,7 @@ interface ResendVerificationButtonProps {
 export function ResendVerificationButton({
   email,
 }: ResendVerificationButtonProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
@@ -31,18 +33,25 @@ export function ResendVerificationButton({
 
         // Show success state for 2 seconds, then refresh the page
         setTimeout(() => {
-          window.location.reload();
+          router.refresh();
         }, 2000);
       } else {
-        const errorData = await response.json();
-        alert(
-          `Failed to send verification email: ${errorData.message || "Please try again later."}`,
-        );
-        setIsLoading(false);
+        let message = "Please try again later.";
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || message;
+        } catch {
+          const text = await response.text().catch(() => null);
+          message = text || message;
+        }
+        alert(`Failed to send verification email: ${message}`);
       }
     } catch {
       alert("An unexpected error occurred. Please try again.");
-      setIsLoading(false);
+    } finally {
+      if (!isSent) {
+        setIsLoading(false);
+      }
     }
   };
 
