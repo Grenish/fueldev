@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../trpc";
+import { deleteUserAccount } from "@/lib/auth";
 
 export const userRouter = router({
   // Get current authenticated user's session
@@ -74,4 +75,17 @@ export const userRouter = router({
       });
       return user;
     }),
+
+  // Delete current user's account
+  deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      // Delete user account with all related data
+      await deleteUserAccount(ctx.user.id);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      throw new Error("Failed to delete account");
+    }
+  }),
 });

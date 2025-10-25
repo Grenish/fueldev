@@ -4,9 +4,16 @@ import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Spinner } from "./ui/spinner";
 
 interface SignOutButtonProps {
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   className?: string;
   children?: React.ReactNode;
 }
@@ -14,7 +21,7 @@ interface SignOutButtonProps {
 export function SignOutButton({
   variant = "outline",
   className,
-  children = "Sign Out"
+  children = "Sign Out",
 }: SignOutButtonProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +46,13 @@ export function SignOutButton({
       disabled={isLoading}
       className={className}
     >
-      {isLoading ? "Signing out..." : children}
+      {isLoading ? (
+        <>
+          <Spinner /> Signing out...
+        </>
+      ) : (
+        children
+      )}
     </Button>
   );
 }
