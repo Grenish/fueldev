@@ -77,10 +77,10 @@ export const userRouter = router({
     }),
 
   // Delete current user's account
-  deleteAccount: protectedProcedure.mutation(async () => {
+  deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
     try {
       // Delete user account with all related data
-      await deleteUserAccount();
+      await deleteUserAccount(ctx.user.id);
 
       return { success: true };
     } catch (error) {
