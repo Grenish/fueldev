@@ -9,7 +9,7 @@ import AccountDeletedEmail from "@/emails/account-deleted-email";
 import type React from "react";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.EMAIL_FROM || "fueldev@resend.dev";
+const RESEND_FROM = process.env.EMAIL_FROM || "FuelDev <fueldev@resend.dev>";
 const resend = new Resend(RESEND_API_KEY);
 
 // Enhanced error logging utility
@@ -53,6 +53,41 @@ class AuthLogger {
     metadata?: Record<string, unknown>,
   ) {
     console.log(`[FuelDev Auth - ${context}]`, message, metadata || "");
+  }
+}
+
+// Check if device is trusted (has been used in last 30 days)
+async function isDeviceTrusted(
+  userId: string,
+  ipAddress?: string | null,
+  userAgent?: string | null,
+): Promise<boolean> {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Check if there's a recent session from the same device
+    const recentSession = await prisma.session.findFirst({
+      where: {
+        userId,
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return !!recentSession;
+  } catch (error) {
+    // If we can't check, err on the side of caution and don't send alert
+    AuthLogger.error("Trusted Device Check Failed", error, {
+      userId,
+    });
+    return true; // Assume trusted to avoid spam
   }
 }
 
@@ -355,28 +390,54 @@ export const auth = betterAuth({
               return;
             }
 
-            // Send security alert asynchronously (non-blocking)
-            sendEmailWithRetry(
-              {
-                from: RESEND_FROM,
-                to: user.email,
-                subject: "New login to your FuelDev account",
-                react: SecurityAlertEmail({
-                  userEmail: user.email,
-                  alertType: "login",
+            // Check if this is a trusted device before sending security alert
+            const isTrusted = await isDeviceTrusted(
+              session.userId,
+              session.ipAddress,
+              session.userAgent,
+            );
+
+            // Only send security alert for new/untrusted devices
+            if (!isTrusted) {
+              AuthLogger.info(
+                "New Device Login Detected",
+                "Sending security alert",
+                {
+                  userId: user.id,
                   deviceInfo: getDeviceInfo(session.userAgent || undefined),
-                  location: "Unknown location", // TODO: Add IP geolocation
-                  timestamp: formatTimestamp(new Date(session.createdAt)),
-                  ipAddress: session.ipAddress || "Unknown",
-                }),
-              },
-              user.id,
-            ).catch((error) => {
-              // Silent fail - don't block login
-              AuthLogger.error("Login Alert Email Failed", error, {
-                userId: user.id,
+                },
+              );
+
+              sendEmailWithRetry(
+                {
+                  from: RESEND_FROM,
+                  to: user.email,
+                  subject: "New login to your FuelDev account",
+                  react: SecurityAlertEmail({
+                    userEmail: user.email,
+                    alertType: "login",
+                    deviceInfo: getDeviceInfo(session.userAgent || undefined),
+                    location: "Unknown location", // TODO: Add IP geolocation
+                    timestamp: formatTimestamp(new Date(session.createdAt)),
+                    ipAddress: session.ipAddress || "Unknown",
+                  }),
+                },
+                user.id,
+              ).catch((error) => {
+                // Silent fail - don't block login
+                AuthLogger.error("Login Alert Email Failed", error, {
+                  userId: user.id,
+                });
               });
-            });
+            } else {
+              AuthLogger.info(
+                "Trusted Device Login",
+                "Skipping security alert for trusted device",
+                {
+                  userId: user.id,
+                },
+              );
+            }
           } catch (error) {
             // Log but don't block session creation
             AuthLogger.error("Session Hook Failed", error, {
