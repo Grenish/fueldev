@@ -6,7 +6,6 @@ import ResetPasswordEmail from "@/emails/reset-password-email";
 import VerificationEmail from "@/emails/verification-email";
 import SecurityAlertEmail from "@/emails/security-alert-email";
 import AccountDeletedEmail from "@/emails/account-deleted-email";
-import { headers } from "next/headers";
 import type React from "react";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -65,6 +64,7 @@ async function sendEmailWithRetry(
     subject: string;
     react: React.ReactElement;
   },
+  userId?: string,
   maxRetries = 3,
 ): Promise<{ success: boolean; error?: string }> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -72,13 +72,16 @@ async function sendEmailWithRetry(
       const response = await resend.emails.send(emailData);
 
       if (response.error) {
-        throw new Error(
+        // Preserve statusCode by attaching it to the Error object
+        const err = new Error(
           `Resend API error: ${response.error.message || "Unknown error"}`,
-        );
+        ) as Error & { statusCode?: number };
+        err.statusCode = response.error.statusCode ?? undefined;
+        throw err;
       }
 
       AuthLogger.info("Email Sent", `Successfully sent ${emailData.subject}`, {
-        to: emailData.to,
+        userId,
         attempt,
       });
 
@@ -86,12 +89,12 @@ async function sendEmailWithRetry(
     } catch (error: unknown) {
       const isLastAttempt = attempt === maxRetries;
 
-      // Check for specific Resend error types
+      // Check for specific Resend error types - statusCode now preserved
       const resendError = error as { statusCode?: number; message?: string };
       if (resendError?.statusCode === 429) {
         // Rate limit exceeded - don't retry immediately
         AuthLogger.error("Email Rate Limited", error, {
-          to: emailData.to,
+          userId,
           subject: emailData.subject,
         });
 
@@ -104,7 +107,7 @@ async function sendEmailWithRetry(
       if (resendError?.statusCode === 422) {
         // Validation error - don't retry
         AuthLogger.error("Email Validation Error", error, {
-          to: emailData.to,
+          userId,
           subject: emailData.subject,
         });
         return { success: false, error: "Invalid email configuration" };
@@ -123,7 +126,7 @@ async function sendEmailWithRetry(
       }
 
       AuthLogger.error("Email Send Failed", error, {
-        to: emailData.to,
+        userId,
         subject: emailData.subject,
         attempt,
         isLastAttempt,
@@ -164,12 +167,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     async sendResetPassword({ user, url }) {
-      const result = await sendEmailWithRetry({
-        from: RESEND_FROM,
-        to: user.email,
-        subject: "Reset your FuelDev password",
-        react: ResetPasswordEmail({ resetUrl: url }),
-      });
+      const result = await sendEmailWithRetry(
+        {
+          from: RESEND_FROM,
+          to: user.email,
+          subject: "Reset your FuelDev password",
+          react: ResetPasswordEmail({ resetUrl: url }),
+        },
+        user.id,
+      );
 
       if (!result.success) {
         AuthLogger.error(
@@ -177,11 +183,11 @@ export const auth = betterAuth({
           new Error(result.error),
           {
             userId: user.id,
-            userEmail: user.email,
           },
         );
 
         // Don't block the password reset flow - user can try again
+        // Don't expose detailed error to client
         throw new Error(
           "Unable to send password reset email. Please try again later.",
         );
@@ -198,17 +204,19 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     async sendVerificationEmail({ user, url }) {
-      const result = await sendEmailWithRetry({
-        from: RESEND_FROM,
-        to: user.email,
-        subject: "Verify your FuelDev email",
-        react: VerificationEmail({ verifyUrl: url }),
-      });
+      const result = await sendEmailWithRetry(
+        {
+          from: RESEND_FROM,
+          to: user.email,
+          subject: "Verify your FuelDev email",
+          react: VerificationEmail({ verifyUrl: url }),
+        },
+        user.id,
+      );
 
       if (!result.success) {
         AuthLogger.error("Verification Email Failed", new Error(result.error), {
           userId: user.id,
-          userEmail: user.email,
         });
 
         // Log but don't block signup - user can request resend
@@ -253,7 +261,6 @@ export const auth = betterAuth({
         } catch (error) {
           AuthLogger.error("User Deletion Cleanup Failed", error, {
             userId: user.id,
-            userEmail: user.email,
           });
 
           // Check for specific Prisma errors
@@ -275,14 +282,14 @@ export const auth = betterAuth({
             if (prismaError.code === "P2003") {
               // Foreign key constraint failed
               throw new Error(
-                "Cannot delete user: associated data exists. Please contact support.",
+                "Unable to delete account at this time. Please contact support.",
               );
             }
           }
 
           // For other errors, prevent deletion to maintain data integrity
           throw new Error(
-            "Failed to clean up user data. Deletion aborted for safety.",
+            "Unable to delete account at this time. Please try again later.",
           );
         }
       },
@@ -298,28 +305,29 @@ export const auth = betterAuth({
           });
 
           // Send deletion confirmation email (best effort)
-          await sendEmailWithRetry({
-            from: RESEND_FROM,
-            to: user.email,
-            subject: "Your FuelDev account has been deleted",
-            react: AccountDeletedEmail({
-              userName: user.name || "User",
-              userEmail: user.email,
-              accountCreatedDate,
-              totalSupport: "0", // TODO: Calculate from database before deletion
-              projectsCreated: "0", // TODO: Calculate from database before deletion
-            }),
-          });
-
-          AuthLogger.info(
-            "Account Deleted",
-            `Successfully deleted account for ${user.email}`,
+          await sendEmailWithRetry(
+            {
+              from: RESEND_FROM,
+              to: user.email,
+              subject: "Your FuelDev account has been deleted",
+              react: AccountDeletedEmail({
+                userName: user.name || "User",
+                userEmail: user.email,
+                accountCreatedDate,
+                totalSupport: "0", // TODO: Calculate from database before deletion
+                projectsCreated: "0", // TODO: Calculate from database before deletion
+              }),
+            },
+            user.id,
           );
+
+          AuthLogger.info("Account Deleted", `Successfully deleted account`, {
+            userId: user.id,
+          });
         } catch (error) {
           // Don't throw - deletion already completed, email is nice-to-have
           AuthLogger.error("Account Deletion Email Failed", error, {
             userId: user.id,
-            userEmail: user.email,
           });
         }
       },
@@ -348,19 +356,22 @@ export const auth = betterAuth({
             }
 
             // Send security alert asynchronously (non-blocking)
-            sendEmailWithRetry({
-              from: RESEND_FROM,
-              to: user.email,
-              subject: "New login to your FuelDev account",
-              react: SecurityAlertEmail({
-                userEmail: user.email,
-                alertType: "login",
-                deviceInfo: getDeviceInfo(session.userAgent || undefined),
-                location: "Unknown location", // TODO: Add IP geolocation
-                timestamp: formatTimestamp(new Date(session.createdAt)),
-                ipAddress: session.ipAddress || "Unknown",
-              }),
-            }).catch((error) => {
+            sendEmailWithRetry(
+              {
+                from: RESEND_FROM,
+                to: user.email,
+                subject: "New login to your FuelDev account",
+                react: SecurityAlertEmail({
+                  userEmail: user.email,
+                  alertType: "login",
+                  deviceInfo: getDeviceInfo(session.userAgent || undefined),
+                  location: "Unknown location", // TODO: Add IP geolocation
+                  timestamp: formatTimestamp(new Date(session.createdAt)),
+                  ipAddress: session.ipAddress || "Unknown",
+                }),
+              },
+              user.id,
+            ).catch((error) => {
               // Silent fail - don't block login
               AuthLogger.error("Login Alert Email Failed", error, {
                 userId: user.id,
@@ -384,19 +395,22 @@ export const auth = betterAuth({
             // Better Auth doesn't provide changed fields, so this sends on any update
             // Consider implementing field change detection if needed
 
-            sendEmailWithRetry({
-              from: RESEND_FROM,
-              to: user.email,
-              subject: "Your FuelDev account was updated",
-              react: SecurityAlertEmail({
-                userEmail: user.email,
-                alertType: "password_change",
-                deviceInfo: "Unknown device",
-                location: "Unknown location",
-                timestamp: formatTimestamp(new Date()),
-                ipAddress: "Unknown",
-              }),
-            }).catch((error) => {
+            sendEmailWithRetry(
+              {
+                from: RESEND_FROM,
+                to: user.email,
+                subject: "Your FuelDev account was updated",
+                react: SecurityAlertEmail({
+                  userEmail: user.email,
+                  alertType: "password_change",
+                  deviceInfo: "Unknown device",
+                  location: "Unknown location",
+                  timestamp: formatTimestamp(new Date()),
+                  ipAddress: "Unknown",
+                }),
+              },
+              user.id,
+            ).catch((error) => {
               // Silent fail - don't block update
               AuthLogger.error("Update Alert Email Failed", error, {
                 userId: user.id,
@@ -417,30 +431,51 @@ export const auth = betterAuth({
 export type Session = typeof auth.$Infer.Session;
 
 // Enhanced user account deletion with proper error handling
-export async function deleteUserAccount() {
+// Framework-agnostic: accepts userId instead of importing next/headers
+export async function deleteUserAccount(userId: string) {
   try {
-    await auth.api.deleteUser({
-      body: {},
-      headers: await headers(),
+    // Fetch the user first to trigger Better Auth's beforeDelete and afterDelete hooks
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
     });
 
-    return { success: true, message: "Account deleted successfully" };
-  } catch (error) {
-    AuthLogger.error("Account Deletion Failed", error);
-
-    // Return user-friendly error
-    if (error instanceof Error) {
+    if (!user) {
+      AuthLogger.error("Account Deletion Failed", new Error("User not found"), {
+        userId,
+      });
       return {
         success: false,
         error:
-          error.message ||
-          "Failed to delete account. Please try again or contact support.",
+          "Unable to delete account at this time. Please try again later or contact support.",
       };
     }
 
+    // Trigger beforeDelete hook manually
+    if (auth.options.user?.deleteUser?.beforeDelete) {
+      await auth.options.user.deleteUser.beforeDelete(user);
+    }
+
+    // Delete the user from database
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    // Trigger afterDelete hook manually
+    if (auth.options.user?.deleteUser?.afterDelete) {
+      await auth.options.user.deleteUser.afterDelete(user);
+    }
+
+    return { success: true, message: "Account deleted successfully" };
+  } catch (error) {
+    AuthLogger.error("Account Deletion Failed", error, {
+      userId,
+    });
+
+    // Return generic user-friendly error - never expose internal error messages
     return {
       success: false,
-      error: "An unexpected error occurred. Please contact support.",
+      error:
+        "Unable to delete account at this time. Please try again later or contact support.",
     };
   }
 }
@@ -456,34 +491,37 @@ export async function sendAccountDeletionEmail(userData: {
   try {
     // Validate email data
     if (!userData.userEmail || !userData.userName) {
-      throw new Error("Invalid user data: missing required fields");
+      AuthLogger.error(
+        "Account Deletion Email Validation Failed",
+        new Error("Invalid user data: missing required fields"),
+      );
+      throw new Error("Invalid user data");
     }
 
-    const result = await sendEmailWithRetry({
-      from: RESEND_FROM,
-      to: userData.userEmail,
-      subject: "Your FuelDev account has been deleted",
-      react: AccountDeletedEmail({
-        userName: userData.userName,
-        userEmail: userData.userEmail,
-        accountCreatedDate: userData.accountCreatedDate,
-        totalSupport: userData.totalSupport || "0",
-        projectsCreated: userData.projectsCreated || "0",
-      }),
-    });
+    const result = await sendEmailWithRetry(
+      {
+        from: RESEND_FROM,
+        to: userData.userEmail,
+        subject: "Your FuelDev account has been deleted",
+        react: AccountDeletedEmail({
+          userName: userData.userName,
+          userEmail: userData.userEmail,
+          accountCreatedDate: userData.accountCreatedDate,
+          totalSupport: userData.totalSupport || "0",
+          projectsCreated: userData.projectsCreated || "0",
+        }),
+      },
+      undefined, // userId not available in this context
+    );
 
     return result;
   } catch (error) {
-    AuthLogger.error("Account Deletion Email Failed", error, {
-      userEmail: userData.userEmail,
-    });
+    AuthLogger.error("Account Deletion Email Failed", error);
 
+    // Return generic error message - don't expose internal details
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to send deletion email",
+      error: "Unable to send confirmation email",
     };
   }
 }
