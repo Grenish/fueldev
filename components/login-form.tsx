@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Spinner } from "./ui/spinner";
 
-function LoginFormContent({
+export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
@@ -143,11 +143,4 @@ function LoginFormContent({
       </FieldGroup>
     </form>
   );
-}
-
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"form">) {
-  return <LoginFormContent className={className} {...props} />;
 }
