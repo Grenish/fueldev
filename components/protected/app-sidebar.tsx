@@ -46,6 +46,10 @@ const data = {
       isActive: true,
       items: [
         {
+          title: "Links",
+          url: "/hub/links",
+        },
+        {
           title: "Edit Profile",
           url: "#",
         },
@@ -143,8 +147,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <SidebarMenu className="px-2">
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <Home /> Home
+            <SidebarMenuButton asChild>
+              <Link href={"/home"}>
+                <Home /> Home
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
