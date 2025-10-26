@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/protected/app-sidebar";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,9 +22,9 @@ export default function protectedLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <main className="w-full bg-muted/30 min-h-full rounded-none sm:rounded-2xl">
-          <header className="flex h-16 shrink-0 items-center gap-2">
-            <div className="flex items-center gap-2 px-4">
+        <main className="w-full bg-muted/50 h-[calc(100svh-1rem)] rounded-none sm:rounded-2xl flex flex-col overflow-hidden">
+          <header className="flex h-16 shrink-0 items-center justify-between px-4 border-b">
+            <div className="flex items-center gap-2">
               <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
@@ -41,8 +42,10 @@ export default function protectedLayout({
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
+            <ThemeSwitcher />
           </header>
-          {children}
+
+          <div className="flex-1 overflow-y-auto">{children}</div>
         </main>
       </SidebarInset>
     </SidebarProvider>
