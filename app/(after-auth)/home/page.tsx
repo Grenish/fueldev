@@ -22,9 +22,8 @@ export default function ProtectedHomePage() {
     all: "All time",
   };
   return (
-    <div className="flex flex-col items-center justify-center">
-      <div className="w-full md:w-1/2 bg-muted/50 rounded-xl p-6 border border-border">
-        {/* Header */}
+    <div className="flex flex-col items-center justify-center p-2">
+      <div className="w-full md:w-1/2 bg-card rounded-xl p-6 border border-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <Avatar className="size-12">
@@ -49,10 +48,8 @@ export default function ProtectedHomePage() {
           </Link>
         </div>
 
-        {/* Divider */}
         <Separator className="my-5" />
 
-        {/* Earnings section */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-foreground">Earnings</h3>
