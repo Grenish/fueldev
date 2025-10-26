@@ -1,194 +1,100 @@
-import { SignOutButton } from "@/components/sign-out-button";
-import { DeleteAccountButton } from "@/components/delete-account-button";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { ResendVerificationButton } from "@/components/resend-verification-button";
+import { ChevronDown, SquareArrowOutUpRight } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
-// Force dynamic rendering and disable caching to always show fresh data
-export const dynamic = "force-dynamic";
+export default function ProtectedHomePage() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
 
-export default async function HomePage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: {
-      disableCookieCache: true,
-    },
-  });
-
-  if (!session) {
-    redirect("/auth/login");
-  }
-
-  const { user } = session;
-
+  const periodLabels: Record<string, string> = {
+    "7": "Last 7 days",
+    "30": "Last 30 days",
+    all: "All time",
+  };
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-6">
+    <div className="flex flex-col items-center justify-center">
+      <div className="w-full md:w-1/2 bg-muted/50 rounded-xl p-6 border border-border">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Welcome back! Manage your account and settings.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="size-12">
+              <AvatarImage src="/avatar-placeholder.png" alt="Profile" />
+              <AvatarFallback>GR</AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-base font-semibold leading-tight">
+                Hi, Grenish
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                fueldev.in/grenish
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="#"
+            className="bg-primary text-primary-foreground text-sm px-4 py-2 rounded-md hover:bg-primary/90 transition inline-flex items-center gap-1.5"
+          >
+            <SquareArrowOutUpRight size={20} /> Share page
+          </Link>
         </div>
 
-        {/* Email Verification Alert */}
-        {!user.emailVerified && (
-          <Alert
-            variant="default"
-            className="border-amber-500 bg-amber-50 dark:bg-amber-950/20"
-          >
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-900 dark:text-amber-100">
-              Email Verification Required
-            </AlertTitle>
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <span>
-                  Please verify your email address to access all features. Check
-                  your inbox for the verification link.
-                </span>
-                <ResendVerificationButton email={user.email} />
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Divider */}
+        <Separator className="my-5" />
 
-        {/* User Details Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>
-              Your account details and information
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Name:
-                </span>
-                <span className="col-span-2 text-sm">
-                  {user.name || "Not set"}
-                </span>
-              </div>
+        {/* Earnings section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-foreground">Earnings</h3>
 
-              <Separator />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="w-[140px]">
+                  {periodLabels[selectedPeriod]}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSelectedPeriod("7")}>
+                  Last 7 days
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedPeriod("30")}>
+                  Last 30 days
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedPeriod("all")}>
+                  All time
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Email:
-                </span>
-                <span className="col-span-2 text-sm">{user.email}</span>
-              </div>
+          <p className="text-3xl font-bold">&#8377;0</p>
 
-              <Separator />
-
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  User ID:
-                </span>
-                <span className="col-span-2 font-mono text-xs">{user.id}</span>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Email Verified:
-                </span>
-                <span className="col-span-2 text-sm">
-                  {user.emailVerified ? (
-                    <span className="text-green-600 font-medium">Verified</span>
-                  ) : (
-                    <span className="text-amber-600 font-medium">
-                      Not verified
-                    </span>
-                  )}
-                </span>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Account Created:
-                </span>
-                <span className="col-span-2 text-sm">
-                  {new Date(user.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-              </div>
+          <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-full bg-yellow-400"></span>
+              &#8377;0 Supporters
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Session Information Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Session Details</CardTitle>
-            <CardDescription>
-              Information about your current session
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Session ID:
-                </span>
-                <span className="col-span-2 font-mono text-xs">
-                  {"••••••" + String(session.session.id).slice(-6)}
-                </span>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Expires At:
-                </span>
-                <span className="col-span-2 text-sm">
-                  {new Date(session.session.expiresAt).toLocaleString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
+            <div className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-full bg-rose-400"></span>
+              &#8377;0 Membership
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Account Actions Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Actions</CardTitle>
-            <CardDescription>Manage your session and account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <SignOutButton variant="outline" className="flex-1" />
-              <DeleteAccountButton variant="destructive" className="flex-1" />
+            <div className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-full bg-sky-400"></span>
+              &#8377;0 Shop
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
