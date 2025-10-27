@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TRPCProvider } from "@/lib/trpc/react";
+import { Toaster } from "sonner";
+
 const inter = Inter({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
@@ -29,6 +31,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TRPCProvider>{children}</TRPCProvider>
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
     </html>
