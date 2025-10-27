@@ -12,6 +12,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -32,12 +33,6 @@ import Link from "next/link";
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-
   navMain: [
     {
       title: "Creator Hub",
@@ -123,7 +118,26 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+  };
+}) {
+  const pathname = usePathname();
+
+  // Prepare user data for NavUser component
+  const userData = {
+    name: user.name,
+    email: user.email,
+    avatar: user.image || "/avatars/default.jpg",
+  };
+
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
@@ -136,7 +150,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             className="shrink-0"
           />
           <div className="flex flex-col leading-tight transition-all duration-300 overflow-hidden">
-            <span className="text-lg font-semibold truncate">Grenish</span>
+            <span className="text-lg font-semibold truncate">{user.name}</span>
             <span className="text-sm text-muted-foreground truncate">
               FuelDev
             </span>
@@ -147,7 +161,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <SidebarMenu className="px-2">
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={pathname === "/home"}>
               <Link href={"/home"}>
                 <Home /> Home
               </Link>
@@ -167,8 +181,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupLabel>Settings</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="home/settings/account">
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/home/settings/account"}
+                >
+                  <Link href="/home/settings/account">
                     <User className="h-4 w-4" />
                     Account
                   </Link>
@@ -176,8 +193,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="home/settings/notifications">
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/home/settings/notifications"}
+                >
+                  <Link href="/home/settings/notifications">
                     <Bell className="h-4 w-4" />
                     Notifications
                   </Link>
@@ -185,8 +205,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="home/settings/payments">
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/home/settings/payments"}
+                >
+                  <Link href="/home/settings/payments">
                     <Wallet className="h-4 w-4" />
                     Payments
                   </Link>
@@ -194,8 +217,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="home/settings/integrations">
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/home/settings/integrations"}
+                >
+                  <Link href="/home/settings/integrations">
                     <Plug className="h-4 w-4" />
                     Integrations
                   </Link>
@@ -204,7 +230,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
           </SidebarContent>
         </SidebarMenu>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
