@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 import Link from "next/link";
+import { Badge } from "../ui/badge";
 
 // This is sample data.
 const data = {
@@ -43,10 +44,6 @@ const data = {
         {
           title: "Links",
           url: "/hub/links",
-        },
-        {
-          title: "Edit Profile",
-          url: "#",
         },
         {
           title: "Create Post",
@@ -83,16 +80,8 @@ const data = {
       icon: Store,
       items: [
         {
-          title: "Products",
-          url: "#",
-        },
-        {
-          title: "Add New Item",
-          url: "#",
-        },
-        {
-          title: "Orders",
-          url: "#",
+          title: "Create New (0/1)",
+          url: "/store/create-store",
         },
       ],
     },
