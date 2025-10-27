@@ -53,7 +53,7 @@ export function ThemeSwitcher({ className, ...props }: ThemeSwitcherProps) {
       {...props}
     >
       <motion.div
-        className="absolute -z-1 size-6 rounded-full bg-primary/50"
+        className="absolute -z-1 size-6 rounded-full bg-secondary-foreground"
         initial={false}
         animate={{
           x: currentIndex * 24,
@@ -79,7 +79,7 @@ export function ThemeSwitcher({ className, ...props }: ThemeSwitcherProps) {
             className={cn(
               "relative m-auto size-3.5 transition duration-200 ease-out",
               theme === value
-                ? "text-foreground"
+                ? "text-background"
                 : "text-secondary-foreground group-hover:text-foreground group-focus-visible:text-foreground",
             )}
             aria-hidden="true"
