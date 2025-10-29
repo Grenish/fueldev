@@ -7,7 +7,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { ArrowUpRightIcon, FolderCode, LayoutTemplate } from "lucide-react";
+import { LayoutTemplate } from "lucide-react";
 
 export default function CreatorPage() {
   return (
