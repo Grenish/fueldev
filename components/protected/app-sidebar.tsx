@@ -50,8 +50,8 @@ const data = {
           url: "/hub/creator-page",
         },
         {
-          title: "Manage Page",
-          url: "#",
+          title: "Posts",
+          url: "/hub/posts",
         },
       ],
     },
