@@ -1,30 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ExternalLink,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,491 +11,383 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Behance,
-  Bluesky,
-  CustomLink,
-  Deviantart,
-  Discord,
-  Dribbble,
-  Facebook,
-  Github,
-  Instagram,
-  Linkedin,
-  Mastodon,
-  Medium,
-  Onlyfans,
-  Patreon,
-  Pinterest,
-  Reddit,
-  Rss,
-  Threads,
-  Twitch,
-  X,
-  Youtube,
-} from "@/public/icons";
-import { useState } from "react";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { Checkbox } from "@/components/ui/checkbox";
-
-type Social = {
-  id: number;
-  iconName: string;
-  icon: React.ComponentType<{ className?: string }>;
-};
-
-type SavedSocial = {
-  iconName: string;
-  url: string;
-  icon: React.ComponentType<{ className?: string }>;
-  customName?: string;
-  isNsfw?: boolean;
-};
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Save, Loader2 } from "lucide-react";
+import { ProfileCard } from "./components/ProfileCard";
+import { SocialLinks } from "./components/SocialLinks";
+import { BlockBuilder } from "./components/BlockBuilder";
+import { PreviewPane } from "./components/PreviewPane";
+import { SocialDialog } from "./components/SocialDialog";
+import { AddBlockDialog } from "./components/AddBlockDialog";
+import { AnyBlock, SavedSocial } from "./types";
+import { trpc } from "@/lib/trpc/react";
+import { toast } from "sonner";
+import { socialsMap } from "./constants";
 
 export default function CreatorLinks() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSocial, setSelectedSocial] = useState<Social | null>(null);
-  const [socialUrl, setSocialUrl] = useState("");
-  const [customName, setCustomName] = useState("");
-  const [isNsfw, setIsNsfw] = useState(false);
+  // Fetch user links data
+  const { data: userLinksData, isLoading } = trpc.userLinks.get.useQuery();
+  const upsertMutation = trpc.userLinks.upsert.useMutation();
+
+  // Profile state
+  const [name, setName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+
+  // Socials state
   const [savedSocials, setSavedSocials] = useState<SavedSocial[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [nsfwWarning, setNsfwWarning] = useState<SavedSocial | null>(null);
+  const [isSocialDialogOpen, setIsSocialDialogOpen] = useState(false);
+  const [nsfwWarningUrl, setNsfwWarningUrl] = useState<string | null>(null);
 
-  const socialsMap: Social[] = [
-    { id: 0, iconName: "RSS", icon: Rss },
-    { id: 1, iconName: "Patreon", icon: Patreon },
-    { id: 2, iconName: "Twitch", icon: Twitch },
-    { id: 3, iconName: "Threads", icon: Threads },
-    { id: 4, iconName: "Reddit", icon: Reddit },
-    { id: 5, iconName: "Pinterest", icon: Pinterest },
-    { id: 6, iconName: "OnlyFans", icon: Onlyfans },
-    { id: 7, iconName: "Medium", icon: Medium },
-    { id: 8, iconName: "Mastodon", icon: Mastodon },
-    { id: 9, iconName: "LinkedIn", icon: Linkedin },
-    { id: 10, iconName: "Instagram", icon: Instagram },
-    { id: 11, iconName: "GitHub", icon: Github },
-    { id: 12, iconName: "Facebook", icon: Facebook },
-    { id: 13, iconName: "Dribbble", icon: Dribbble },
-    { id: 14, iconName: "Discord", icon: Discord },
-    { id: 15, iconName: "DeviantArt", icon: Deviantart },
-    { id: 16, iconName: "Bluesky", icon: Bluesky },
-    { id: 17, iconName: "Behance", icon: Behance },
-    { id: 18, iconName: "YouTube", icon: Youtube },
-    { id: 19, iconName: "X (Twitter)", icon: X },
-    { id: 20, iconName: "Custom Link", icon: CustomLink },
-  ];
+  // Blocks state
+  const [blocks, setBlocks] = useState<AnyBlock[]>([]);
+  const [isAddBlockDialogOpen, setIsAddBlockDialogOpen] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<AnyBlock | null>(null);
 
-  const nsfwPlatforms = [
-    "OnlyFans",
-    "Patreon",
-    "X (Twitter)",
-    "Discord",
-    "DeviantArt",
-    "Custom Link",
-  ];
+  // Track if there are unsaved changes
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filteredSocials = socialsMap.filter((social) =>
-    social.iconName.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // Store original data to compare against
+  const originalDataRef = useRef<string>("");
 
-  const canShowNsfwOption = (iconName: string) =>
-    nsfwPlatforms.includes(iconName);
+  // Load data from tRPC
+  useEffect(() => {
+    if (userLinksData) {
+      setName(userLinksData.name);
+      setHandle(userLinksData.handle);
+      setBio(userLinksData.bio);
+      setAvatarUrl(userLinksData.avatarUrl || undefined);
 
-  const handleSocialClick = (social: Social) => {
-    setSelectedSocial(social);
-    // Pre-fill if already saved
-    const existing = savedSocials.find((s) => s.iconName === social.iconName);
-    if (existing) {
-      setSocialUrl(existing.url);
-      setCustomName(existing.customName || "");
-      setIsNsfw(existing.isNsfw || false);
-    } else {
-      setSocialUrl("");
-      setCustomName("");
-      setIsNsfw(false);
+      // Map icon components to saved socials
+      const socialsFromDb = userLinksData.socials as unknown as Array<{
+        iconName: string;
+        url: string;
+        isNsfw?: boolean;
+        customName?: string;
+      }>;
+
+      const socialsWithIcons = socialsFromDb.map((social) => {
+        const iconData = socialsMap.find((s) => s.iconName === social.iconName);
+        return {
+          iconName: social.iconName,
+          url: social.url,
+          isNsfw: social.isNsfw,
+          customName: social.customName,
+          icon: iconData?.icon || socialsMap[0].icon,
+        };
+      });
+      setSavedSocials(socialsWithIcons as unknown as SavedSocial[]);
+      setBlocks(userLinksData.blocks as unknown as AnyBlock[]);
+
+      // Store stringified original data
+      originalDataRef.current = JSON.stringify({
+        name: userLinksData.name,
+        handle: userLinksData.handle,
+        bio: userLinksData.bio,
+        avatarUrl: userLinksData.avatarUrl,
+        socials: userLinksData.socials,
+        blocks: userLinksData.blocks,
+      });
     }
+  }, [userLinksData]);
+
+  // Check for unsaved changes using useMemo
+  const hasUnsavedChanges = useMemo(() => {
+    if (!originalDataRef.current) return false;
+
+    const currentData = JSON.stringify({
+      name,
+      handle,
+      bio,
+      avatarUrl: avatarUrl ?? null,
+      socials: savedSocials,
+      blocks,
+    });
+
+    return currentData !== originalDataRef.current;
+  }, [name, handle, bio, avatarUrl, savedSocials, blocks]);
+
+  // Social handlers
+  const handleAddSocial = () => {
+    setIsSocialDialogOpen(true);
   };
 
-  const handleBack = () => {
-    setSelectedSocial(null);
-    setSocialUrl("");
-    setCustomName("");
-    setIsNsfw(false);
-  };
-
-  const handleSave = () => {
-    if (!selectedSocial || !socialUrl.trim()) return;
-    if (selectedSocial.iconName === "Custom Link" && !customName.trim()) return;
-
-    // Remove existing entry if updating
-    const filtered = savedSocials.filter(
-      (s) => s.iconName !== selectedSocial.iconName,
-    );
-
-    // Add new/updated entry
-    setSavedSocials([
-      ...filtered,
-      {
-        iconName: selectedSocial.iconName,
-        url: socialUrl,
-        icon: selectedSocial.icon,
-        customName:
-          selectedSocial.iconName === "Custom Link" ? customName : undefined,
-        isNsfw: isNsfw,
-      },
-    ]);
-
-    // Reset and close
-    setSelectedSocial(null);
-    setSocialUrl("");
-    setCustomName("");
-    setIsNsfw(false);
-    setIsDialogOpen(false);
-    setSearchQuery("");
+  const handleSaveSocial = (social: SavedSocial) => {
+    const filtered = savedSocials.filter((s) => s.iconName !== social.iconName);
+    setSavedSocials([...filtered, social]);
   };
 
   const handleRemoveSocial = (iconName: string) => {
     setSavedSocials(savedSocials.filter((s) => s.iconName !== iconName));
   };
 
-  const handleDialogOpenChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) {
-      setSelectedSocial(null);
-      setSocialUrl("");
-      setCustomName("");
-      setIsNsfw(false);
-      setSearchQuery("");
-    }
-  };
-
   const handleSocialIconClick = (e: React.MouseEvent, social: SavedSocial) => {
     if (social.isNsfw) {
       e.preventDefault();
-      setNsfwWarning(social);
+      setNsfwWarningUrl(social.url);
     }
   };
 
   const handleNsfwProceed = () => {
-    if (nsfwWarning) {
-      window.open(nsfwWarning.url, "_blank", "noopener,noreferrer");
-      setNsfwWarning(null);
+    if (nsfwWarningUrl) {
+      window.open(nsfwWarningUrl, "_blank", "noopener,noreferrer");
+      setNsfwWarningUrl(null);
     }
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center p-4">
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 w-full max-w-2xl">
-        <Avatar className="size-20 shrink-0">
-          <AvatarImage src="" alt="Creator avatar" />
-          <AvatarFallback>FD</AvatarFallback>
-        </Avatar>
+  // Block handlers
+  const handleAddBlock = () => {
+    setEditingBlock(null);
+    setIsAddBlockDialogOpen(true);
+  };
 
-        <div className="flex flex-col w-full">
-          <h2 className="text-xl font-semibold">Grenish Rai</h2>
-          <p className="text-sm font-medium text-muted-foreground">
-            @grenish-rai
+  const handleEditBlock = (id: string) => {
+    const block = blocks.find((b) => b.id === id);
+    if (block) {
+      setEditingBlock(block);
+      setIsAddBlockDialogOpen(true);
+    }
+  };
+
+  const handleSaveBlock = (block: AnyBlock) => {
+    if (editingBlock) {
+      // Update existing block
+      setBlocks(blocks.map((b) => (b.id === block.id ? block : b)));
+    } else {
+      // Add new block
+      setBlocks([...blocks, block]);
+    }
+    setEditingBlock(null);
+  };
+
+  const handleSaveMultipleBlocks = (newBlocks: AnyBlock[]) => {
+    setBlocks([...blocks, ...newBlocks]);
+  };
+
+  const handleRemoveBlock = (id: string) => {
+    setBlocks(blocks.filter((b) => b.id !== id));
+  };
+
+  const handleMoveBlock = (id: string, direction: "up" | "down") => {
+    const index = blocks.findIndex((b) => b.id === id);
+    if (index === -1) return;
+
+    const newBlocks = [...blocks];
+    if (direction === "up" && index > 0) {
+      [newBlocks[index - 1], newBlocks[index]] = [
+        newBlocks[index],
+        newBlocks[index - 1],
+      ];
+    } else if (direction === "down" && index < blocks.length - 1) {
+      [newBlocks[index], newBlocks[index + 1]] = [
+        newBlocks[index + 1],
+        newBlocks[index],
+      ];
+    }
+    setBlocks(newBlocks);
+  };
+
+  const handleScrollToPreview = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Save changes to database
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      await upsertMutation.mutateAsync({
+        name,
+        handle,
+        bio,
+        avatarUrl: avatarUrl ?? null,
+        socials: savedSocials.map((s) => ({
+          iconName: s.iconName,
+          url: s.url,
+          isNsfw: s.isNsfw ?? false,
+          icon: undefined,
+        })),
+        blocks,
+      });
+
+      toast.success("Changes saved successfully!");
+
+      // Update original data ref after successful save
+      originalDataRef.current = JSON.stringify({
+        name,
+        handle,
+        bio,
+        avatarUrl: avatarUrl ?? null,
+        socials: savedSocials.map((s) => ({
+          iconName: s.iconName,
+          url: s.url,
+          isNsfw: s.isNsfw ?? false,
+          icon: undefined,
+        })),
+        blocks,
+      });
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      toast.error("Failed to save changes. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle bio edit
+  const handleEditBio = (newBio: string) => {
+    setBio(newBio);
+  };
+
+  // Handle handle edit - save directly to database
+  const handleEditHandle = async (newHandle: string) => {
+    try {
+      await upsertMutation.mutateAsync({
+        name,
+        handle: newHandle,
+        bio,
+        avatarUrl: avatarUrl ?? null,
+        socials: savedSocials.map((s) => ({
+          iconName: s.iconName,
+          url: s.url,
+          isNsfw: s.isNsfw ?? false,
+          icon: undefined,
+        })),
+        blocks,
+      });
+
+      // Update local state
+      setHandle(newHandle);
+
+      // Update original data ref after successful save
+      originalDataRef.current = JSON.stringify({
+        name,
+        handle: newHandle,
+        bio,
+        avatarUrl: avatarUrl ?? null,
+        socials: savedSocials.map((s) => ({
+          iconName: s.iconName,
+          url: s.url,
+          isNsfw: s.isNsfw ?? false,
+          icon: undefined,
+        })),
+        blocks,
+      });
+    } catch (error) {
+      console.error("Error updating handle:", error);
+      throw error; // Re-throw to let ProfileCard handle the error
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="size-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            Loading your links page...
           </p>
-          <div className="bg-card/50 mt-3 rounded-xl p-3">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Lorem ipsum dolor sit amet consectetur adipiscing elit quisque
-              faucibus ex sapien vitae pellentesque sem placerat in id cursus mi
-              pretium tellus duis convallis tempus leo eu aenean sed diam urna
-              tempor.
-            </p>
+        </div>
+      </div>
+    );
+  }
 
-            <div className="flex justify-end mt-2">
-              <Button size="sm" variant="ghost">
-                <Pencil className="size-4" /> Edit Bio
-              </Button>
-            </div>
+  return (
+    <div className="min-h-screen">
+      {/* Fixed Save Button */}
+      {hasUnsavedChanges && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={handleSaveChanges}
+            disabled={isSaving}
+            size="lg"
+            className="shadow-lg"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="size-4 mr-2" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <ProfileCard
+              name={name}
+              handle={handle}
+              bio={bio}
+              avatarUrl={avatarUrl}
+              onEditBio={handleEditBio}
+              onEditHandle={handleEditHandle}
+            />
+
+            <SocialLinks
+              savedSocials={savedSocials}
+              onAddClick={handleAddSocial}
+              onRemove={handleRemoveSocial}
+              onIconClick={handleSocialIconClick}
+            />
+
+            <BlockBuilder
+              blocks={blocks}
+              onAddBlock={handleAddBlock}
+              onEditBlock={handleEditBlock}
+              onRemoveBlock={handleRemoveBlock}
+              onMoveBlock={handleMoveBlock}
+              onScrollToPreview={handleScrollToPreview}
+            />
           </div>
-          <Separator className="my-3" />
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Saved Social Icons */}
-            {savedSocials.map((social) => (
-              <Tooltip key={social.iconName}>
-                <TooltipTrigger asChild>
-                  <div className="relative group">
-                    <Button
-                      size="icon-lg"
-                      variant="outline"
-                      className="rounded-full relative"
-                      asChild
-                    >
-                      <a
-                        href={social.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => handleSocialIconClick(e, social)}
-                      >
-                        <social.icon className="size-5" />
-                        {social.isNsfw && (
-                          <span className="absolute -top-1 -right-1 size-3 bg-red-500 rounded-full border-2 border-background" />
-                        )}
-                      </a>
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="absolute -top-2 -right-2 size-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleRemoveSocial(social.iconName);
-                      }}
-                    >
-                      <Trash2 className="size-3" />
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {social.customName || social.iconName}
-                </TooltipContent>
-              </Tooltip>
-            ))}
 
-            {/* Add Button */}
-            <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="icon-lg"
-                      variant="outline"
-                      className="rounded-full"
-                    >
-                      <Plus />
-                    </Button>
-                  </DialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Add Socials</TooltipContent>
-              </Tooltip>
-
-              <DialogContent className="outline-none">
-                {!selectedSocial ? (
-                  <>
-                    <DialogHeader>
-                      <DialogTitle>Add Socials</DialogTitle>
-                      <DialogDescription>
-                        Select a social media platform to add
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    {/* Search field */}
-                    <div className="grid gap-4">
-                      <div className="grid gap-3">
-                        <Label htmlFor="social-search">Search</Label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                          <Input
-                            id="social-search"
-                            type="search"
-                            placeholder="Search social platform"
-                            className="pl-9"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Social icons grid */}
-                    {filteredSocials.length > 0 ? (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-[400px] overflow-y-auto">
-                        {filteredSocials.map((social) => (
-                          <Tooltip key={social.id}>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="icon-lg"
-                                variant="outline"
-                                className="aspect-square flex items-center justify-center hover:bg-primary/10 hover:border-primary transition-colors"
-                                onClick={() => handleSocialClick(social)}
-                              >
-                                <social.icon className="size-5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{social.iconName}</TooltipContent>
-                          </Tooltip>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center py-8">
-                        <Empty>
-                          <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                              <Search />
-                            </EmptyMedia>
-                            <EmptyTitle>No social platforms found</EmptyTitle>
-                            <EmptyDescription>
-                              Try searching with a different keyword
-                            </EmptyDescription>
-                          </EmptyHeader>
-                        </Empty>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <DialogHeader>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-8"
-                          onClick={handleBack}
-                        >
-                          <ArrowLeft className="size-4" />
-                        </Button>
-                        <div>
-                          <DialogTitle>
-                            Add {selectedSocial.iconName}
-                          </DialogTitle>
-                          <DialogDescription>
-                            Enter your profile URL
-                          </DialogDescription>
-                        </div>
-                      </div>
-                    </DialogHeader>
-
-                    <div className="space-y-6 py-4">
-                      <div className="flex justify-center">
-                        <div className="size-16 rounded-full border-2 flex items-center justify-center bg-muted">
-                          <selectedSocial.icon className="size-8" />
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        {selectedSocial.iconName === "Custom Link" && (
-                          <>
-                            <Label htmlFor="custom-name">Link Name</Label>
-                            <Input
-                              id="custom-name"
-                              type="text"
-                              placeholder="e.g., Portfolio, Blog, Website"
-                              value={customName}
-                              onChange={(e) => setCustomName(e.target.value)}
-                              autoFocus
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Give your custom link a name
-                            </p>
-                          </>
-                        )}
-
-                        <Label htmlFor="social-url">
-                          {selectedSocial.iconName === "Custom Link"
-                            ? "URL"
-                            : "Profile URL"}
-                        </Label>
-                        <Input
-                          id="social-url"
-                          type="url"
-                          placeholder={
-                            selectedSocial.iconName === "Custom Link"
-                              ? "https://example.com"
-                              : `https://${selectedSocial.iconName.toLowerCase()}.com/yourprofile`
-                          }
-                          value={socialUrl}
-                          onChange={(e) => setSocialUrl(e.target.value)}
-                          autoFocus={selectedSocial.iconName !== "Custom Link"}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {selectedSocial.iconName === "Custom Link"
-                            ? "Enter the full URL"
-                            : `Enter the full URL to your ${selectedSocial.iconName} profile`}
-                        </p>
-                      </div>
-
-                      {canShowNsfwOption(selectedSocial.iconName) && (
-                        <div className="flex items-start space-x-3 rounded-lg border p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
-                          <Checkbox
-                            id="nsfw-checkbox"
-                            checked={isNsfw}
-                            onCheckedChange={(checked) =>
-                              setIsNsfw(checked as boolean)
-                            }
-                          />
-                          <div className="space-y-1 leading-none">
-                            <label
-                              htmlFor="nsfw-checkbox"
-                              className="text-sm font-medium cursor-pointer flex items-center gap-2"
-                            >
-                              <AlertTriangle className="size-4 text-amber-600 dark:text-amber-500" />
-                              Mark as NSFW (18+)
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              This link may contain mature or sensitive content.
-                              Visitors will see a warning before accessing it.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={handleBack}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          className="flex-1"
-                          onClick={handleSave}
-                          disabled={
-                            !socialUrl.trim() ||
-                            (selectedSocial.iconName === "Custom Link" &&
-                              !customName.trim())
-                          }
-                        >
-                          Save
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </DialogContent>
-            </Dialog>
+          <div className="lg:col-span-1">
+            <PreviewPane
+              name={name}
+              handle={handle}
+              bio={bio}
+              avatarUrl={avatarUrl}
+              savedSocials={savedSocials}
+              blocks={blocks}
+              onSocialClick={handleSocialIconClick}
+            />
           </div>
         </div>
       </div>
 
-      <div className="w-full max-w-2xl">
-        <Separator className="my-5" />
-      </div>
+      <SocialDialog
+        open={isSocialDialogOpen}
+        onOpenChange={setIsSocialDialogOpen}
+        savedSocials={savedSocials}
+        onSave={handleSaveSocial}
+      />
 
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 w-full max-w-2xl">
-        <div className="flex items-center w-full gap-2">
-          <Button className="w-1/2" variant={"default"} size={"sm"}>
-            <Plus /> Add
-          </Button>
-          <Button className="w-1/2 border" variant={"ghost"} size={"sm"}>
-            <ExternalLink /> Preview
-          </Button>
-        </div>
-      </div>
+      <AddBlockDialog
+        open={isAddBlockDialogOpen}
+        onOpenChange={setIsAddBlockDialogOpen}
+        onSave={handleSaveBlock}
+        onSaveMultiple={handleSaveMultipleBlocks}
+        editingBlock={editingBlock}
+      />
 
       <AlertDialog
-        open={!!nsfwWarning}
-        onOpenChange={() => setNsfwWarning(null)}
+        open={!!nsfwWarningUrl}
+        onOpenChange={() => setNsfwWarningUrl(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-destructive" />
-              Content Warning
+              Content Warning (18+)
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p>
                   This link has been marked as containing mature or sensitive
                   content (NSFW - Not Safe For Work).
@@ -527,11 +395,15 @@ export default function CreatorLinks() {
                 <p className="font-medium text-foreground">
                   You must be 18 years or older to proceed.
                 </p>
+                <p className="text-sm text-muted-foreground">
+                  By clicking &quot;I Am 18+ and Aware&quot;, you confirm that
+                  you are of legal age and understand the nature of the content.
+                </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setNsfwWarning(null)}>
+            <AlertDialogCancel onClick={() => setNsfwWarningUrl(null)}>
               Go Back
             </AlertDialogCancel>
             <AlertDialogAction
