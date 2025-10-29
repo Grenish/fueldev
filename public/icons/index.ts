@@ -19,3 +19,7 @@ export { default as Behance } from "./behance.svg";
 export { default as Youtube } from "./youtube.svg";
 export { default as X } from "./x-twitter.svg";
 export { default as CustomLink } from "./link.svg";
+export { default as Hashnode } from "./hashnode.svg";
+export { default as Codepen } from "./codepen.svg";
+export { default as Stackoverflow } from "./stackoverflow.svg";
+export { default as Blogger } from "./blogger.svg";
