@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Plus,
   ExternalLink,
-  GripVertical,
   Pencil,
   Trash2,
   ChevronUp,
@@ -120,11 +119,6 @@ export function BlockBuilder({
                 className="group relative rounded-lg border bg-card p-3 hover:border-foreground/20 hover:shadow-sm transition-all"
               >
                 <div className="flex items-center gap-3">
-                  {/* Drag handle */}
-                  <div className="cursor-grab active:cursor-grabbing">
-                    <GripVertical className="size-4 text-muted-foreground" />
-                  </div>
-
                   {/* Block info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -139,47 +133,48 @@ export function BlockBuilder({
 
                   {/* Actions */}
                   <div className="flex items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => onEditBlock(block.id)}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => onRemoveBlock(block.id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => onEditBlock(block.id)}
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => onRemoveBlock(block.id)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                    {/* Move buttons */}
+                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {index > 0 && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="size-6 rounded-full bg-background shadow-sm"
+                          onClick={() => onMoveBlock(block.id, "up")}
+                        >
+                          <ChevronUp className="size-3" />
+                        </Button>
+                      )}
+                      {index < blocks.length - 1 && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="size-6 rounded-full bg-background shadow-sm"
+                          onClick={() => onMoveBlock(block.id, "down")}
+                        >
+                          <ChevronDown className="size-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-
-                {/* Move buttons */}
-                <div className="absolute -right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {index > 0 && (
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="size-6 rounded-full bg-background shadow-sm"
-                      onClick={() => onMoveBlock(block.id, "up")}
-                    >
-                      <ChevronUp className="size-3" />
-                    </Button>
-                  )}
-                  {index < blocks.length - 1 && (
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="size-6 rounded-full bg-background shadow-sm"
-                      onClick={() => onMoveBlock(block.id, "down")}
-                    >
-                      <ChevronDown className="size-3" />
-                    </Button>
-                  )}
                 </div>
               </div>
             ))}
