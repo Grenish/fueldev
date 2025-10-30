@@ -29,6 +29,7 @@ import {
   SpacerBlock,
   ProjectsBlock,
 } from "../types";
+import { BlockSelector } from "./BlockSelector";
 
 interface AddBlockDialogProps {
   open: boolean;
@@ -613,7 +614,7 @@ export function AddBlockDialog({
         }
       }}
     >
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingBlock ? "Edit Block" : "Add Content"}
@@ -635,36 +636,25 @@ export function AddBlockDialog({
           <TabsContent value="blocks" className="space-y-6 mt-6">
             {/* Block type selector */}
             <div className="space-y-3">
-              <Label>Block Type</Label>
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    "heading",
-                    "paragraph",
-                    "link",
-                    "button",
-                    "image",
-                    "embed",
-                    "spotify",
-                    "list",
-                    "spacer",
-                    "projects",
-                  ] as AnyBlock["type"][]
-                ).map((type) => (
-                  <Button
-                    key={type}
-                    size="sm"
-                    variant={selectedBlockType === type ? "default" : "outline"}
-                    onClick={() => setSelectedBlockType(type)}
-                    className="capitalize"
-                  >
-                    {type}
-                  </Button>
-                ))}
-              </div>
+              <Label>Choose a Block Type</Label>
+              <BlockSelector
+                onSelect={setSelectedBlockType}
+                selectedType={selectedBlockType}
+              />
             </div>
 
             {/* Block configurations */}
+            {selectedBlockType && (
+              <div className="border-t pt-6">
+                <h4 className="text-sm font-medium text-muted-foreground mb-4">
+                  Configure Your{" "}
+                  {selectedBlockType.charAt(0).toUpperCase() +
+                    selectedBlockType.slice(1)}{" "}
+                  Block
+                </h4>
+              </div>
+            )}
+
             {selectedBlockType === "heading" && (
               <div className="space-y-4">
                 <div className="flex gap-2">
