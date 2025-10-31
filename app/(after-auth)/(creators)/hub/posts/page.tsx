@@ -50,6 +50,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function CreatorPage() {
   return (
@@ -67,20 +68,24 @@ export default function CreatorPage() {
               <DialogDescription>Create new damn post</DialogDescription>
             </DialogHeader>
             <div className="w-full flex items-center gap-2">
-              <div className="flex flex-1 flex-col items-center justify-center w-1/2 border p-2 py-6 rounded-lg hover:bg-muted gap-2 cursor-pointer">
-                <Newspaper />
-                Article
-              </div>
-              <div className="flex flex-1 flex-col items-center justify-center w-1/2 border p-2 py-6 rounded-lg hover:bg-muted gap-2 cursor-pointer">
-                <ChartColumnBig />
-                Poll
-              </div>
+              <Link className="w-1/2" href={"posts/new/article"}>
+                <div className="flex flex-1 flex-col items-center justify-center w-full border p-2 py-6 rounded-lg hover:bg-muted gap-2 cursor-pointer">
+                  <Newspaper />
+                  Article
+                </div>
+              </Link>
+              <Link className="w-1/2" href={"posts/new/polls"}>
+                <div className="flex flex-1 flex-col items-center justify-center w-full border p-2 py-6 rounded-lg hover:bg-muted gap-2 cursor-pointer">
+                  <ChartColumnBig />
+                  Poll
+                </div>
+              </Link>
             </div>
           </DialogContent>
         </Dialog>
       </div>
       <div className="mt-2 w-1/2">
-        <Tabs defaultValue="account">
+        <Tabs defaultValue="published">
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="published">Published</TabsTrigger>
