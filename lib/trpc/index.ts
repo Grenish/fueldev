@@ -4,8 +4,8 @@ export { trpc } from "./client";
 // Export React hooks and provider
 export { trpc as trpcReact, TRPCProvider } from "./react";
 
-// Export server-side utilities
-export { createServerCaller } from "./server";
+// NOTE: Server-side utilities are not exported here to avoid client-side imports
+// Import directly from "./server" in server components only
 
-// Export types
+// Export types (types are safe to export)
 export type { AppRouter } from "@/server/routers/_app";

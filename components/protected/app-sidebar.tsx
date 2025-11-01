@@ -46,12 +46,12 @@ const data = {
           url: "/hub/links",
         },
         {
-          title: "Create Post",
-          url: "#",
+          title: "Page",
+          url: "/hub/creator-page",
         },
         {
-          title: "Manage Page",
-          url: "#",
+          title: "Posts",
+          url: "/hub/posts",
         },
       ],
     },
@@ -149,7 +149,7 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarMenu className="px-2">
-          <SidebarMenuItem>
+          <SidebarMenuItem className="outline-none">
             <SidebarMenuButton asChild isActive={pathname === "/home"}>
               <Link href={"/home"}>
                 <Home /> Home
@@ -169,7 +169,7 @@ export function AppSidebar({
           <SidebarContent>
             <SidebarGroupLabel>Settings</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenuItem>
+              <SidebarMenuItem className="outline-none">
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/home/settings/account"}
@@ -181,7 +181,7 @@ export function AppSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem>
+              <SidebarMenuItem className="outline-none">
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/home/settings/notifications"}

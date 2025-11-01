@@ -15,15 +15,16 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String     @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean    @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @default(now()) @updatedAt
   sessions      Session[]
   accounts      Account[]
+  userLinks     UserLinks?
 
   @@unique([email])
   @@map("user")
@@ -72,4 +73,28 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("verification")
+}
+
+model UserLinks {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Profile information
+  name            String
+  handle          String
+  bio             String    @default("")
+  avatarUrl       String?
+  handleUpdatedAt DateTime? // Track when handle was last changed (null on creation)
+
+  // JSON fields for flexible data storage
+  socials Json @default("[]") // Array of SavedSocial objects
+  blocks  Json @default("[]") // Array of AnyBlock objects
+
+  // Metadata
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_links")
 }
