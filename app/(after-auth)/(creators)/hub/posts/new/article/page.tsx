@@ -1,10 +1,13 @@
+"use client";
+
+import { TiptapEditor } from "@/components/editor";
+import { useState } from "react";
+
 export default function CreatorArticle() {
+  const [content, setContent] = useState("");
   return (
     <div className="h-full w-full flex flex-col items-center">
-      <div className="w-1/2 mx-auto p-5">
-        <h1 className="text-3xl font-semibold">Some Great Title</h1>
-        <p className="text-lg text-muted-foreground">some great subtitles</p>
-      </div>
+      <TiptapEditor content={content} onChange={setContent} />
     </div>
   );
 }
