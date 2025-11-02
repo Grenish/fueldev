@@ -13,6 +13,7 @@ import { common, createLowlight } from "lowlight";
 import { FloatingMenu } from "./floating-menu";
 import { SlashCommand, getSuggestionItems, renderItems } from "./slash-command";
 import "./editor-style.css";
+import { Button } from "../ui/button";
 
 const lowlight = createLowlight(common);
 
@@ -92,8 +93,8 @@ export function TiptapEditor({
   }
 
   return (
-    <div className="relative w-full">
-      <div className="max-w-1/2 mx-auto px-6 py-12">
+    <div className="relative w-full flex justify-center px-4 sm:px-6 lg:px-8 py-10">
+      <div className="w-full max-w-3xl">
         <EditorContent editor={editor} className="medium-editor" />
         {editable && <FloatingMenu editor={editor} />}
       </div>
