@@ -25,6 +25,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   userLinks     UserLinks?
+  Article       Article[]
 
   @@unique([email])
   @@map("user")
@@ -97,4 +98,41 @@ model UserLinks {
   updatedAt DateTime @updatedAt
 
   @@map("user_links")
+}
+
+model Article {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Article content
+  title      String  @default("")
+  slug       String  @unique
+  content    String  @default("") @db.Text
+  excerpt    String? @db.Text
+  coverImage String?
+
+  // Metadata
+  tags       Json   @default("[]") // Array of strings
+  visibility String @default("private") // "public", "private", "supporters", "members"
+
+  // Publishing options
+  published       Boolean   @default(false)
+  notifyFollowers Boolean   @default(false)
+  scheduledFor    DateTime?
+  publishedAt     DateTime?
+
+  // Statistics
+  viewCount Int @default(0)
+  likeCount Int @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([slug])
+  @@index([published])
+  @@index([createdAt])
+  @@map("article")
 }
