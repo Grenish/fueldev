@@ -26,7 +26,10 @@ export function FloatingMenu({ editor }: FloatingMenuProps) {
       const hasSelection = from !== to;
 
       if (!hasSelection) {
-        setIsVisible(false);
+        // Defer state update to avoid flushSync warning
+        queueMicrotask(() => {
+          setIsVisible(false);
+        });
         return;
       }
 
@@ -40,8 +43,11 @@ export function FloatingMenu({ editor }: FloatingMenuProps) {
       const left = (start.left + end.left) / 2 - menuWidth / 2;
       const top = start.top - menuHeight - 10;
 
-      setPosition({ top, left });
-      setIsVisible(true);
+      // Defer state updates to avoid flushSync warning
+      queueMicrotask(() => {
+        setPosition({ top, left });
+        setIsVisible(true);
+      });
     };
 
     editor.on("selectionUpdate", updatePosition);
