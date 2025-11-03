@@ -49,14 +49,12 @@ interface CommandListRef {
 const CommandList = forwardRef<CommandListRef, CommandListProps>(
   ({ items, command, editor }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [prevItemsLength, setPrevItemsLength] = useState(items.length);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Reset selected index when items array changes
-    if (items.length !== prevItemsLength) {
+    useEffect(() => {
       setSelectedIndex(0);
-      setPrevItemsLength(items.length);
-    }
+    }, [items.length]);
 
     // Scroll selected item into view
     useEffect(() => {
@@ -250,6 +248,13 @@ function calculateMenuPosition(
   return { top, left, side };
 }
 
+// Global state for image dialog
+let globalImageDialogCallback: (() => void) | null = null;
+
+export function setImageDialogCallback(callback: (() => void) | null) {
+  globalImageDialogCallback = callback;
+}
+
 export const SlashCommand = Extension.create({
   name: "slashCommand",
 
@@ -370,9 +375,8 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       icon: <ImageIcon className="h-4 w-4" />,
       command: ({ editor, range }: { editor: Editor; range: Range }) => {
         editor.chain().focus().deleteRange(range).run();
-        const url = window.prompt("Enter image URL:");
-        if (url) {
-          editor.chain().focus().setImage({ src: url }).run();
+        if (globalImageDialogCallback) {
+          globalImageDialogCallback();
         }
       },
     },
