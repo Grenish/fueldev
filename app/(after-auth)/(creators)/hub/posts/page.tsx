@@ -60,10 +60,19 @@ import { trpc } from "@/lib/trpc/react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 
 export default function CreatorPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
+
+  // Prefetch article data on hover for instant navigation
+  const prefetchArticle = useCallback(
+    (articleId: string) => {
+      utils.article.getById.prefetch({ id: articleId });
+    },
+    [utils.article.getById],
+  );
 
   // Fetch all articles
   const { data: allArticlesData, isLoading } = trpc.article.list.useQuery({
@@ -127,7 +136,8 @@ export default function CreatorPage() {
   );
 
   // Extract excerpt from HTML content
-  const getExcerpt = (content: string, maxLength = 200) => {
+  const getExcerpt = (content: string | undefined | null, maxLength = 200) => {
+    if (!content) return "";
     const div = document.createElement("div");
     div.innerHTML = content;
     const text = div.textContent || div.innerText || "";
@@ -188,7 +198,13 @@ export default function CreatorPage() {
   };
 
   // Article Card Component
-  const ArticleCard = ({ article, type }: { article: any; type: string }) => {
+  const ArticleCard = ({
+    article,
+    type,
+  }: {
+    article: (typeof articles)[0];
+    type: string;
+  }) => {
     const VisibilityIcon = getVisibilityInfo(article.visibility).icon;
     const visibilityLabel = getVisibilityInfo(article.visibility).label;
 
@@ -196,6 +212,7 @@ export default function CreatorPage() {
       <Card
         className="p-2 gap-0 cursor-pointer hover:bg-muted/50 transition-colors"
         onClick={() => router.push(`/hub/articles/${article.id}`)}
+        onMouseEnter={() => prefetchArticle(article.id)}
       >
         <CardHeader className="p-2 m-0">
           <CardDescription className="flex items-center justify-between">
@@ -205,65 +222,91 @@ export default function CreatorPage() {
                 `Posted ${formatDate(article.publishedAt || article.createdAt)}`}
               {type === "draft" && `Drafted ${formatDate(article.updatedAt)}`}
               {type === "scheduled" &&
+                article.scheduledFor &&
                 `Scheduled for ${new Date(article.scheduledFor).toLocaleDateString()}`}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger onClick={(e) => e.stopPropagation()}>
                 <Ellipsis size={20} className="text-primary" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent
+                align="end"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    onClick={() => router.push(`/hub/articles/${article.id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/hub/articles/${article.id}`);
+                    }}
                   >
                     View Article
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() =>
-                      router.push(`/hub/articles/${article.id}/edit`)
-                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/hub/articles/${article.id}/edit`);
+                    }}
                   >
                     Edit
                   </DropdownMenuItem>
                   {type === "draft" && (
-                    <DropdownMenuItem onClick={() => handlePublish(article.id)}>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePublish(article.id);
+                      }}
+                    >
                       Publish
                     </DropdownMenuItem>
                   )}
                   {type === "published" && (
                     <>
-                      <DropdownMenuItem>Pin this post</DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                        Pin this post
+                      </DropdownMenuItem>
                       <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
+                        <DropdownMenuSubTrigger
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           Change visibility
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
-                          <DropdownMenuSubContent>
+                          <DropdownMenuSubContent
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <DropdownMenuItem
-                              onClick={() =>
-                                handleVisibilityChange(article.id, "public")
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVisibilityChange(article.id, "public");
+                              }}
                             >
                               Public
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() =>
-                                handleVisibilityChange(article.id, "private")
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVisibilityChange(article.id, "private");
+                              }}
                             >
                               Private
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() =>
-                                handleVisibilityChange(article.id, "supporters")
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVisibilityChange(
+                                  article.id,
+                                  "supporters",
+                                );
+                              }}
                             >
                               Supporters Only
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() =>
-                                handleVisibilityChange(article.id, "members")
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVisibilityChange(article.id, "members");
+                              }}
                             >
                               Members Only
                             </DropdownMenuItem>
@@ -277,13 +320,19 @@ export default function CreatorPage() {
                 <DropdownMenuGroup>
                   {type === "published" && (
                     <DropdownMenuItem
-                      onClick={() => handleUnpublish(article.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnpublish(article.id);
+                      }}
                     >
                       Unpublish
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
-                    onClick={() => handleDelete(article.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(article.id);
+                    }}
                     className="text-destructive"
                   >
                     Delete
@@ -308,7 +357,7 @@ export default function CreatorPage() {
         <CardHeader className="p-2">
           <CardTitle>{article.title || "Untitled"}</CardTitle>
           <CardDescription>
-            {article.excerpt || getExcerpt(article.content)}
+            {article.excerpt || "No description available"}
           </CardDescription>
         </CardHeader>
         <CardFooter className="p-2 flex items-center justify-between text-xs">
@@ -472,7 +521,7 @@ export default function CreatorPage() {
                   </EmptyTitle>
                   <EmptyDescription>
                     Plan ahead by scheduling a post to go live at a specific
-                    time - they'll show up here.
+                    time - they&apos;ll show up here.
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
