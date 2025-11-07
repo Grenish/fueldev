@@ -68,7 +68,7 @@
 .ProseMirror h4,
 .ProseMirror h5,
 .ProseMirror h6 {
-  font-family: sohne, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: charter, Georgia, Cambria, "Times New Roman", Times, serif;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0;
@@ -341,15 +341,6 @@
 
 .dark .ProseMirror img {
   border-color: #323232;
-}
-
-.ProseMirror img:hover {
-  transform: scale(1.01);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-}
-
-.dark .ProseMirror img:hover {
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 .ProseMirror img.ProseMirror-selectednode {

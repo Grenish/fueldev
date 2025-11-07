@@ -35,17 +35,23 @@ export function ImageUploadDialog({
   const [error, setError] = useState<string | null>(null);
 
   const handleFile = useCallback((file: File) => {
-    setError(null);
+    queueMicrotask(() => {
+      setError(null);
+    });
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file");
+      queueMicrotask(() => {
+        setError("Please upload an image file");
+      });
       return;
     }
 
-    // Validate file size (10MB)
+    // Validate file size
     if (file.size > 10 * 1024 * 1024) {
-      setError("File size must be less than 10MB");
+      queueMicrotask(() => {
+        setError("File size must be less than 10MB");
+      });
       return;
     }
 
@@ -53,7 +59,9 @@ export function ImageUploadDialog({
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      setPreview(result);
+      queueMicrotask(() => {
+        setPreview(result);
+      });
     };
     reader.readAsDataURL(file);
   }, []);
@@ -62,7 +70,10 @@ export function ImageUploadDialog({
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setIsDragging(false);
+
+      queueMicrotask(() => {
+        setIsDragging(false);
+      });
 
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
@@ -75,13 +86,19 @@ export function ImageUploadDialog({
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+
+    queueMicrotask(() => {
+      setIsDragging(true);
+    });
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+
+    queueMicrotask(() => {
+      setIsDragging(false);
+    });
   }, []);
 
   const handleFileInput = useCallback(
@@ -205,16 +222,20 @@ export function ImageUploadDialog({
   };
 
   const handleClose = () => {
-    setPreview(null);
-    setError(null);
-    setIsDragging(false);
-    setIsUploading(false);
+    queueMicrotask(() => {
+      setPreview(null);
+      setError(null);
+      setIsDragging(false);
+      setIsUploading(false);
+    });
     onOpenChange(false);
   };
 
   const handleRemovePreview = () => {
-    setPreview(null);
-    setError(null);
+    queueMicrotask(() => {
+      setPreview(null);
+      setError(null);
+    });
   };
 
   return (

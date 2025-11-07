@@ -17,7 +17,7 @@ import {
   renderItems,
   setImageDialogCallback,
 } from "./slash-command";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import "./editor-style.css";
 
 const lowlight = createLowlight(common);
@@ -38,9 +38,10 @@ export function ArticleEditor({
   userId,
 }: ArticleEditorProps) {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isContentReady, setIsContentReady] = useState(false);
   const onChangeRef = useRef(onChange);
   const contentSetRef = useRef(false);
-  const isInitializedRef = useRef(false);
 
   // Update onChange ref
   useEffect(() => {
@@ -111,28 +112,35 @@ export function ArticleEditor({
       });
     },
     onCreate: ({ editor }) => {
-      queueMicrotask(() => {
-        isInitializedRef.current = true;
+      // Set initial content first, before marking as initialized
+      if (initialContent && !contentSetRef.current) {
+        editor.commands.setContent(initialContent, { emitUpdate: false });
+        contentSetRef.current = true;
+      }
 
-        // Set initial content if provided
-        if (initialContent && !contentSetRef.current) {
-          editor.commands.setContent(initialContent, { emitUpdate: false });
-          contentSetRef.current = true;
-        }
-
-        // Setup image dialog callback
-        if (editable) {
-          setImageDialogCallback(() => {
-            queueMicrotask(() => {
-              setImageDialogOpen(true);
-            });
+      // Setup image dialog callback
+      if (editable) {
+        setImageDialogCallback(() => {
+          queueMicrotask(() => {
+            setImageDialogOpen(true);
           });
-        }
+        });
+      }
+
+      // Mark as initialized using double RAF to completely avoid flushSync
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsInitialized(true);
+          // Wait one more frame before rendering content
+          requestAnimationFrame(() => {
+            setIsContentReady(true);
+          });
+        });
       });
     },
     onDestroy: () => {
-      queueMicrotask(() => {
-        isInitializedRef.current = false;
+      startTransition(() => {
+        setIsInitialized(false);
         setImageDialogCallback(null);
       });
     },
@@ -143,7 +151,7 @@ export function ArticleEditor({
     if (
       editor &&
       !editor.isDestroyed &&
-      isInitializedRef.current &&
+      isInitialized &&
       initialContent &&
       !contentSetRef.current
     ) {
@@ -154,7 +162,7 @@ export function ArticleEditor({
         }
       });
     }
-  }, [editor, initialContent]);
+  }, [editor, initialContent, isInitialized]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -165,7 +173,8 @@ export function ArticleEditor({
     };
   }, [editor]);
 
-  if (!editor || !isInitializedRef.current) {
+  // Ensure editor is fully ready before rendering
+  if (!editor || !isInitialized || editor.isDestroyed) {
     return (
       <div className="relative w-full flex justify-center px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full max-w-3xl">
@@ -182,7 +191,10 @@ export function ArticleEditor({
   return (
     <div className="relative w-full flex justify-center px-4 sm:px-6 lg:px-8 py-10">
       <div className="w-full max-w-3xl">
-        <EditorContent editor={editor} className="medium-editor" />
+        {/* Defer EditorContent rendering to avoid flushSync */}
+        {editor && isInitialized && isContentReady && !editor.isDestroyed && (
+          <EditorContent editor={editor} className="medium-editor" />
+        )}
       </div>
 
       {editable && editor && !editor.isDestroyed && (
