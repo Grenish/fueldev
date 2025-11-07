@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { sanitizeArticleContent, generateExcerpt } from "@/lib/sanitize";
 
 // ============================================================================
 // SCHEMAS
@@ -53,7 +54,7 @@ function generateSlug(title: string): string {
 }
 
 async function ensureUniqueSlug(
-  prisma: any,
+  prisma: typeof import("@/lib/prisma").prisma,
   baseSlug: string,
   excludeId?: string,
 ): Promise<string> {
@@ -75,13 +76,6 @@ async function ensureUniqueSlug(
   }
 }
 
-function extractPlainText(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 // ============================================================================
 // ARTICLE ROUTER
 // ============================================================================
@@ -97,12 +91,17 @@ export const articleRouter = router({
       const baseSlug = generateSlug(title);
       const slug = await ensureUniqueSlug(ctx.prisma, baseSlug);
 
+      // Sanitize content before storing
+      const sanitizedContent = input.content
+        ? sanitizeArticleContent(input.content)
+        : "";
+
       const article = await ctx.prisma.article.create({
         data: {
           userId: ctx.user.id,
           title,
           slug,
-          content: input.content || "",
+          content: sanitizedContent,
           visibility: "private",
           published: false,
         },
@@ -156,10 +155,24 @@ export const articleRouter = router({
         slug = await ensureUniqueSlug(ctx.prisma, baseSlug, id);
       }
 
+      // Sanitize content before updating
+      const sanitizedContent =
+        data.content !== undefined
+          ? sanitizeArticleContent(data.content)
+          : undefined;
+
+      // Auto-generate excerpt if not provided
+      const excerpt =
+        data.excerpt !== undefined
+          ? data.excerpt
+          : sanitizedContent
+            ? generateExcerpt(sanitizedContent, 300)
+            : undefined;
+
       const updateData: Prisma.ArticleUpdateInput = {
         ...(data.title && { title: data.title }),
-        ...(data.content !== undefined && { content: data.content }),
-        ...(data.excerpt !== undefined && { excerpt: data.excerpt }),
+        ...(sanitizedContent !== undefined && { content: sanitizedContent }),
+        ...(excerpt !== undefined && { excerpt }),
         ...(data.coverImage !== undefined && { coverImage: data.coverImage }),
         ...(data.visibility && { visibility: data.visibility }),
         ...(slug && { slug }),
@@ -194,7 +207,7 @@ export const articleRouter = router({
     }),
 
   /**
-   * Get all articles for the current user
+   * Get all articles for the current user (optimized)
    */
   list: protectedProcedure
     .input(listArticlesSchema)
@@ -206,6 +219,7 @@ export const articleRouter = router({
         ...(published !== undefined && { published }),
       };
 
+      // Optimized query - only fetch necessary fields, no content field
       const articles = await ctx.prisma.article.findMany({
         where,
         take: limit + 1,
@@ -226,6 +240,7 @@ export const articleRouter = router({
           likeCount: true,
           createdAt: true,
           updatedAt: true,
+          // Explicitly exclude content field for performance
         },
       });
 
@@ -245,11 +260,12 @@ export const articleRouter = router({
     }),
 
   /**
-   * Get a single article by ID (for editing/viewing)
+   * Get a single article by ID (for editing/viewing) - optimized query
    */
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+      // Single optimized query with all needed fields
       const article = await ctx.prisma.article.findUnique({
         where: { id: input.id },
         select: {
@@ -294,14 +310,30 @@ export const articleRouter = router({
     }),
 
   /**
-   * Get a single article by slug (public view)
+   * Get a single article by slug (public view) - optimized with selective fields
    */
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
       const article = await ctx.prisma.article.findUnique({
         where: { slug: input.slug },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          title: true,
+          slug: true,
+          content: true,
+          excerpt: true,
+          coverImage: true,
+          tags: true,
+          visibility: true,
+          published: true,
+          publishedAt: true,
+          scheduledFor: true,
+          viewCount: true,
+          likeCount: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
             select: {
               id: true,
@@ -329,10 +361,10 @@ export const articleRouter = router({
         });
       }
 
-      // Increment view count for non-owners
+      // Increment view count for non-owners asynchronously
       if (!isOwner && article.published) {
-        // Fire and forget - don't await
-        ctx.prisma.article
+        // Fire and forget - don't await, use void to satisfy linting
+        void ctx.prisma.article
           .update({
             where: { id: article.id },
             data: { viewCount: { increment: 1 } },
