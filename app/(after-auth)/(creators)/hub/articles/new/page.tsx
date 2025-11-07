@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArticleEditor } from "@/components/editor/article-editor";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,8 @@ export default function NewArticlePage() {
     onSuccess: (data) => {
       setArticleId(data.id);
       utils.article.list.invalidate();
-      // Redirect to edit page after creation
-      router.push(`/hub/articles/${data.id}/edit`);
+      // Update URL without navigation/reload
+      window.history.replaceState(null, "", `/hub/articles/${data.id}/edit`);
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create article");
@@ -70,21 +70,26 @@ export default function NewArticlePage() {
       setIsSaving(true);
       const title = extractTitle(newContent);
 
-      if (articleId) {
-        await updateMutation.mutateAsync({
-          id: articleId,
-          title,
-          content: newContent,
-        });
-      } else {
-        await createMutation.mutateAsync({
-          title,
-          content: newContent,
-        });
+      try {
+        if (articleId) {
+          await updateMutation.mutateAsync({
+            id: articleId,
+            title,
+            content: newContent,
+          });
+        } else {
+          await createMutation.mutateAsync({
+            title,
+            content: newContent,
+          });
+        }
+      } catch (error) {
+        // Error is handled by mutation onError
+        console.error("Save error:", error);
       }
     },
     2000,
-    { leading: false, trailing: true }
+    { leading: false, trailing: true },
   );
 
   // Handle content changes
@@ -93,8 +98,15 @@ export default function NewArticlePage() {
       setContent(newContent);
       debouncedSave(newContent);
     },
-    [debouncedSave]
+    [debouncedSave],
   );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [debouncedSave]);
 
   const getSaveStatus = () => {
     if (createMutation.isPending || updateMutation.isPending) {
@@ -109,7 +121,7 @@ export default function NewArticlePage() {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b">
         <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
           <Button
             variant="ghost"
