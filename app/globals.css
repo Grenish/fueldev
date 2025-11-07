@@ -218,5 +218,5 @@
 }
 
 @theme {
-  --font-times: Times New Roman, Times, serif;
+  --font-times: "Times New Roman", Times, serif;
 }
