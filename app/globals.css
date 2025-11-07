@@ -216,3 +216,7 @@
     @apply cursor-pointer;
   }
 }
+
+@theme {
+  --font-times: "Times New Roman", Times, serif;
+}

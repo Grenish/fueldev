@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
 
     const timestamp = Math.round(new Date().getTime() / 1000);
 
-    // Parameters to sign - must match exactly what's sent to Cloudinary
+    // Parameters to sign - MUST match exactly what's sent to Cloudinary
+    // DO NOT include upload_preset in signature params - it's sent separately
     const paramsToSign = {
       folder: folder,
       public_id: public_id,
       timestamp: timestamp,
-      upload_preset: "ml_default",
     };
 
     console.log("Signing params:", { ...paramsToSign, folder: "***" });
@@ -50,6 +50,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       signature,
       timestamp,
+      folder,
+      public_id,
       apiKey: process.env.CLOUDINARY_API_KEY,
       cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
     });

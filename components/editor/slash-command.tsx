@@ -7,7 +7,13 @@ import type {
   SuggestionKeyDownProps,
   SuggestionProps,
 } from "@tiptap/suggestion";
-import { forwardRef, useImperativeHandle, useState } from "react";
+import {
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import type { Editor, Range } from "@tiptap/core";
 import {
   Heading1,
@@ -20,6 +26,7 @@ import {
   Minus,
   Code,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CommandItemProps {
   title: string;
@@ -31,22 +38,40 @@ interface CommandItemProps {
 interface CommandListProps {
   items: CommandItemProps[];
   command: (item: CommandItemProps) => void;
+  editor: Editor;
 }
 
 interface CommandListRef {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean;
+  element: HTMLDivElement | null;
 }
 
 const CommandList = forwardRef<CommandListRef, CommandListProps>(
-  ({ items, command }, ref) => {
+  ({ items, command, editor }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [prevItemsLength, setPrevItemsLength] = useState(items.length);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // Reset selected index when items array changes
-    if (items.length !== prevItemsLength) {
+    useEffect(() => {
       setSelectedIndex(0);
-      setPrevItemsLength(items.length);
-    }
+    }, [items.length]);
+
+    // Scroll selected item into view
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const selectedElement = container.querySelector(
+        `[data-index="${selectedIndex}"]`,
+      ) as HTMLElement;
+
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+      }
+    }, [selectedIndex]);
 
     const selectItem = (index: number) => {
       const item = items[index];
@@ -74,42 +99,74 @@ const CommandList = forwardRef<CommandListRef, CommandListProps>(
 
         return false;
       },
+      element: containerRef.current,
     }));
 
     return (
-      <div className="slash-command-menu bg-popover/95 backdrop-blur-xl rounded-lg shadow-lg border border-border overflow-hidden min-w-[220px] max-h-[280px]">
+      <div
+        ref={containerRef}
+        className={cn(
+          "slash-command-menu",
+          "bg-popover/95 backdrop-blur-xl",
+          "rounded-lg shadow-lg border border-border",
+          "overflow-hidden",
+          "min-w-[220px] max-w-[320px]",
+          "max-h-[280px]",
+          "animate-in fade-in-0 zoom-in-95",
+          "data-[side=bottom]:slide-in-from-top-2",
+          "data-[side=top]:slide-in-from-bottom-2",
+        )}
+      >
         <div className="p-1 overflow-y-auto max-h-[280px]">
           {items.length > 0 ? (
             items.map((item, index) => (
               <button
                 key={index}
+                data-index={index}
                 onClick={() => selectItem(index)}
-                className={`w-full text-left px-2 py-1.5 rounded transition-all duration-100 flex items-center gap-2 group ${
-                  index === selectedIndex ? "bg-accent" : "hover:bg-accent/50"
-                }`}
+                className={cn(
+                  "w-full text-left",
+                  "px-2 py-1.5 rounded",
+                  "transition-all duration-100",
+                  "flex items-center gap-2",
+                  "group",
+                  index === selectedIndex ? "bg-accent" : "hover:bg-accent/50",
+                )}
               >
                 <div
-                  className={`shrink-0 transition-colors ${
+                  className={cn(
+                    "shrink-0 transition-colors",
                     index === selectedIndex
                       ? "text-primary"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  }`}
+                      : "text-muted-foreground group-hover:text-foreground",
+                  )}
                 >
                   {item.icon}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div
-                    className={`text-[13px] font-medium transition-colors ${
+                    className={cn(
+                      "text-[13px] font-medium transition-colors",
                       index === selectedIndex
                         ? "text-accent-foreground"
-                        : "text-foreground"
-                    }`}
+                        : "text-foreground",
+                    )}
                   >
                     {item.title}
                   </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {item.description}
+                  </div>
                 </div>
                 {index === selectedIndex && (
-                  <div className="shrink-0 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  <div
+                    className={cn(
+                      "shrink-0",
+                      "text-[10px] font-medium",
+                      "text-muted-foreground",
+                      "bg-muted px-1.5 py-0.5 rounded",
+                    )}
+                  >
                     ⏎
                   </div>
                 )}
@@ -127,6 +184,76 @@ const CommandList = forwardRef<CommandListRef, CommandListProps>(
 );
 
 CommandList.displayName = "CommandList";
+
+// Calculate optimal position for the menu
+function calculateMenuPosition(
+  rect: DOMRect,
+  menuHeight: number = 280,
+  menuWidth: number = 320,
+) {
+  const padding = 8;
+  const viewport = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    scrollY: window.scrollY,
+    scrollX: window.scrollX,
+  };
+
+  // Calculate available space
+  const spaceAbove = rect.top;
+  const spaceBelow = viewport.height - rect.bottom;
+  const spaceLeft = rect.left;
+  const spaceRight = viewport.width - rect.right;
+
+  // Determine vertical position
+  let top: number;
+  let side: "top" | "bottom";
+
+  if (spaceBelow >= menuHeight + padding || spaceBelow > spaceAbove) {
+    // Place below
+    top = rect.bottom + viewport.scrollY + padding;
+    side = "bottom";
+  } else {
+    // Place above
+    top = rect.top + viewport.scrollY - menuHeight - padding;
+    side = "top";
+  }
+
+  // Determine horizontal position
+  let left = rect.left + viewport.scrollX;
+
+  // Adjust if menu would overflow right edge
+  if (left + menuWidth > viewport.width - padding) {
+    left = Math.max(
+      padding,
+      viewport.width - menuWidth - padding + viewport.scrollX,
+    );
+  }
+
+  // Adjust if menu would overflow left edge
+  if (left < padding) {
+    left = padding + viewport.scrollX;
+  }
+
+  // Ensure menu stays within viewport vertically
+  if (
+    side === "bottom" &&
+    top + menuHeight > viewport.height + viewport.scrollY - padding
+  ) {
+    top = viewport.height + viewport.scrollY - menuHeight - padding;
+  } else if (side === "top" && top < viewport.scrollY + padding) {
+    top = viewport.scrollY + padding;
+  }
+
+  return { top, left, side };
+}
+
+// Global state for image dialog
+let globalImageDialogCallback: (() => void) | null = null;
+
+export function setImageDialogCallback(callback: (() => void) | null) {
+  globalImageDialogCallback = callback;
+}
 
 export const SlashCommand = Extension.create({
   name: "slashCommand",
@@ -248,9 +375,8 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       icon: <ImageIcon className="h-4 w-4" />,
       command: ({ editor, range }: { editor: Editor; range: Range }) => {
         editor.chain().focus().deleteRange(range).run();
-        const url = window.prompt("Enter image URL:");
-        if (url) {
-          editor.chain().focus().setImage({ src: url }).run();
+        if (globalImageDialogCallback) {
+          globalImageDialogCallback();
         }
       },
     },
@@ -264,11 +390,36 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
 export const renderItems = () => {
   let component: ReactRenderer<CommandListRef> | null = null;
   let popup: HTMLElement | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+
+  const updatePosition = (clientRect: () => DOMRect | null) => {
+    if (!popup || !component?.ref?.element) return;
+
+    const rect = clientRect();
+    if (!rect) return;
+
+    // Get actual menu dimensions
+    const menuRect = component.ref.element.getBoundingClientRect();
+    const position = calculateMenuPosition(
+      rect,
+      menuRect.height || 280,
+      menuRect.width || 320,
+    );
+
+    popup.style.top = `${position.top}px`;
+    popup.style.left = `${position.left}px`;
+    popup.setAttribute("data-side", position.side);
+
+    // Update animation direction on the menu
+    if (component.ref.element) {
+      component.ref.element.setAttribute("data-side", position.side);
+    }
+  };
 
   return {
     onStart: (props: SuggestionProps) => {
       component = new ReactRenderer(CommandList, {
-        props,
+        props: { ...props, editor: props.editor },
         editor: props.editor,
       });
 
@@ -276,40 +427,55 @@ export const renderItems = () => {
         return;
       }
 
-      const rect = props.clientRect();
-      if (!rect) {
-        return;
-      }
-
       popup = document.createElement("div");
-      popup.style.position = "absolute";
-      popup.style.top = `${rect.bottom + window.scrollY + 8}px`;
-      popup.style.left = `${rect.left + window.scrollX}px`;
-      popup.style.zIndex = "50";
+      popup.className = cn(
+        "slash-command-popup",
+        "fixed",
+        "z-50",
+        "pointer-events-auto",
+      );
 
       popup.appendChild(component.element);
       document.body.appendChild(popup);
+
+      // Initial position
+      updatePosition(props.clientRect);
+
+      // Watch for viewport changes
+      const handleResize = () => updatePosition(props.clientRect!);
+      window.addEventListener("resize", handleResize);
+      window.addEventListener("scroll", handleResize, true);
+
+      // Watch for menu size changes
+      if (component.ref?.element) {
+        resizeObserver = new ResizeObserver(() => {
+          updatePosition(props.clientRect!);
+        });
+        resizeObserver.observe(component.ref.element);
+      }
+
+      // Store cleanup function
+      (popup as any).cleanup = () => {
+        window.removeEventListener("resize", handleResize);
+        window.removeEventListener("scroll", handleResize, true);
+        resizeObserver?.disconnect();
+      };
     },
 
     onUpdate(props: SuggestionProps) {
-      component?.updateProps(props);
+      component?.updateProps({ ...props, editor: props.editor });
 
       if (!props.clientRect || !popup) {
         return;
       }
 
-      const rect = props.clientRect();
-      if (!rect) {
-        return;
-      }
-
-      popup.style.top = `${rect.bottom + window.scrollY + 8}px`;
-      popup.style.left = `${rect.left + window.scrollX}px`;
+      updatePosition(props.clientRect);
     },
 
     onKeyDown(props: SuggestionKeyDownProps) {
       if (props.event.key === "Escape") {
         if (popup) {
+          (popup as any).cleanup?.();
           popup.remove();
           popup = null;
         }
@@ -322,9 +488,11 @@ export const renderItems = () => {
 
     onExit() {
       if (popup) {
+        (popup as any).cleanup?.();
         popup.remove();
         popup = null;
       }
+      resizeObserver?.disconnect();
       component?.destroy();
     },
   };

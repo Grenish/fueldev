@@ -9,48 +9,48 @@ import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
-import { FloatingMenu } from "./floating-menu";
+import { CustomImage } from "./image-extension";
+import { ImageUploadDialog } from "./image-upload-dialog";
 import {
   SlashCommand,
   getSuggestionItems,
   renderItems,
   setImageDialogCallback,
 } from "./slash-command";
-import { ImageUploadDialog } from "./image-upload-dialog";
-import { CustomImage } from "./image-extension";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import "./editor-style.css";
 
 const lowlight = createLowlight(common);
 
-interface TiptapEditorProps {
-  content?: string;
+interface ArticleEditorProps {
+  initialContent?: string;
   onChange?: (content: string) => void;
   editable?: boolean;
   folder?: string;
   userId?: string;
 }
 
-export function TiptapEditor({
-  content = "",
+export function ArticleEditor({
+  initialContent = "",
   onChange,
   editable = true,
-  folder = "content",
+  folder = "articles",
   userId,
-}: TiptapEditorProps) {
+}: ArticleEditorProps) {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const contentRef = useRef(content);
+  const [isContentReady, setIsContentReady] = useState(false);
   const onChangeRef = useRef(onChange);
+  const contentSetRef = useRef(false);
 
-  // Update refs when props change
+  // Update onChange ref
   useEffect(() => {
-    contentRef.current = content;
     onChangeRef.current = onChange;
-  }, [content, onChange]);
+  }, [onChange]);
 
   const editor = useEditor({
     immediatelyRender: false,
+    editable,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -91,8 +91,6 @@ export function TiptapEditor({
         },
       }),
     ],
-    content,
-    editable,
     editorProps: {
       attributes: {
         class:
@@ -100,77 +98,71 @@ export function TiptapEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      // Use queueMicrotask to defer state update and avoid flushSync warning
+      // Defer to avoid flushSync warning
       queueMicrotask(() => {
         const currentOnChange = onChangeRef.current;
         if (currentOnChange && editor && !editor.isDestroyed) {
           try {
             const html = editor.getHTML();
-            console.log("Editor onUpdate called:", {
-              htmlLength: html?.length || 0,
-              htmlPreview: html?.substring(0, 100),
-            });
             currentOnChange(html);
           } catch (error) {
             console.error("Error in editor onChange:", error);
           }
-        } else {
-          console.log("Editor onUpdate skipped:", {
-            hasOnChange: !!currentOnChange,
-            hasEditor: !!editor,
-            isDestroyed: editor?.isDestroyed,
-          });
         }
       });
     },
     onCreate: ({ editor }) => {
-      console.log("Editor created:", {
-        hasContent: !!editor.getHTML(),
-        contentLength: editor.getHTML()?.length || 0,
-      });
-      // Defer state update to avoid flushSync warning
-      queueMicrotask(() => {
-        setIsInitialized(true);
+      // Set initial content first, before marking as initialized
+      if (initialContent && !contentSetRef.current) {
+        editor.commands.setContent(initialContent, { emitUpdate: false });
+        contentSetRef.current = true;
+      }
+
+      // Setup image dialog callback
+      if (editable) {
+        setImageDialogCallback(() => {
+          queueMicrotask(() => {
+            setImageDialogOpen(true);
+          });
+        });
+      }
+
+      // Mark as initialized using double RAF to completely avoid flushSync
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsInitialized(true);
+          // Wait one more frame before rendering content
+          requestAnimationFrame(() => {
+            setIsContentReady(true);
+          });
+        });
       });
     },
     onDestroy: () => {
-      // Defer state update to avoid flushSync warning
-      queueMicrotask(() => {
+      startTransition(() => {
         setIsInitialized(false);
+        setImageDialogCallback(null);
       });
     },
   });
 
-  // Update editor content when prop changes (but not on initial render)
+  // Update content when initialContent changes (only if not already set)
   useEffect(() => {
-    if (editor && !editor.isDestroyed && isInitialized) {
-      const currentContent = editor.getHTML();
-      if (content !== currentContent && content !== contentRef.current) {
-        // Use requestAnimationFrame to defer content update
-        requestAnimationFrame(() => {
-          if (editor && !editor.isDestroyed) {
-            editor.commands.setContent(content, { emitUpdate: false });
-          }
-        });
-      }
-    }
-  }, [content, editor, isInitialized]);
-
-  // Set up image dialog callback
-  useEffect(() => {
-    if (editor && !editor.isDestroyed && isInitialized) {
-      setImageDialogCallback(() => {
-        // Defer state update to avoid flushSync warning
-        queueMicrotask(() => {
-          setImageDialogOpen(true);
-        });
+    if (
+      editor &&
+      !editor.isDestroyed &&
+      isInitialized &&
+      initialContent &&
+      !contentSetRef.current
+    ) {
+      requestAnimationFrame(() => {
+        if (editor && !editor.isDestroyed) {
+          editor.commands.setContent(initialContent, { emitUpdate: false });
+          contentSetRef.current = true;
+        }
       });
     }
-
-    return () => {
-      setImageDialogCallback(null);
-    };
-  }, [editor, isInitialized]);
+  }, [editor, initialContent, isInitialized]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -181,14 +173,15 @@ export function TiptapEditor({
     };
   }, [editor]);
 
-  if (!editor || !isInitialized) {
+  // Ensure editor is fully ready before rendering
+  if (!editor || !isInitialized || editor.isDestroyed) {
     return (
       <div className="relative w-full flex justify-center px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full max-w-3xl">
           <div className="prose prose-lg dark:prose-invert max-w-none min-h-[calc(100vh-12rem)] animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
-            <div className="h-4 bg-muted rounded w-full mb-2"></div>
-            <div className="h-4 bg-muted rounded w-5/6"></div>
+            <div className="h-8 bg-muted rounded w-1/3 mb-4" />
+            <div className="h-4 bg-muted rounded w-full mb-2" />
+            <div className="h-4 bg-muted rounded w-5/6" />
           </div>
         </div>
       </div>
@@ -198,12 +191,13 @@ export function TiptapEditor({
   return (
     <div className="relative w-full flex justify-center px-4 sm:px-6 lg:px-8 py-10">
       <div className="w-full max-w-3xl">
-        <EditorContent editor={editor} className="medium-editor" />
-        {editable && editor && !editor.isDestroyed && (
-          <FloatingMenu editor={editor} />
+        {/* Defer EditorContent rendering to avoid flushSync */}
+        {editor && isInitialized && isContentReady && !editor.isDestroyed && (
+          <EditorContent editor={editor} className="medium-editor" />
         )}
       </div>
-      {editor && !editor.isDestroyed && (
+
+      {editable && editor && !editor.isDestroyed && (
         <ImageUploadDialog
           open={imageDialogOpen}
           onOpenChange={setImageDialogOpen}
