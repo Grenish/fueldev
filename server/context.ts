@@ -3,31 +3,26 @@ import { prisma } from "@/lib/prisma";
 import { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
 export async function createTRPCContext(opts: FetchCreateContextFnOptions) {
-  try {
-    // Verify prisma client is available
-    if (!prisma) {
-      console.error("Prisma client is not initialized");
-      throw new Error("Database connection not available");
-    }
+  // Get session without throwing errors
+  let session = null;
 
-    const session = await auth.api.getSession({
+  try {
+    session = await auth.api.getSession({
       headers: opts.req.headers,
     });
-
-    return {
-      session,
-      prisma,
-      user: session?.user ?? null,
-    };
   } catch (error) {
-    console.error("Error creating tRPC context:", error);
-    // Return context with null values to prevent complete failure
-    return {
-      session: null,
-      prisma,
-      user: null,
-    };
+    // Log session retrieval errors in development only
+    if (process.env.NODE_ENV === "development") {
+      console.error("Error retrieving session:", error);
+    }
+    // Continue with null session rather than failing
   }
+
+  return {
+    session,
+    prisma,
+    user: session?.user ?? null,
+  };
 }
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
