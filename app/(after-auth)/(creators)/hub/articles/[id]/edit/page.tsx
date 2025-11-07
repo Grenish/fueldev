@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, startTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArticleEditor } from "@/components/editor/article-editor";
 import { Button } from "@/components/ui/button";
@@ -35,18 +35,22 @@ export default function EditArticlePage() {
       enabled: !!articleId,
       retry: 1,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
-  // Update mutation
+  // Update mutation - use startTransition to avoid flushSync
   const updateMutation = trpc.article.update.useMutation({
     onSuccess: () => {
       utils.article.list.invalidate();
-      setIsSaving(false);
+      startTransition(() => {
+        setIsSaving(false);
+      });
     },
     onError: (error) => {
       toast.error(error.message || "Failed to save changes");
-      setIsSaving(false);
+      startTransition(() => {
+        setIsSaving(false);
+      });
     },
   });
 
@@ -65,12 +69,14 @@ export default function EditArticlePage() {
     return text.length === 0;
   };
 
-  // Debounced auto-save
+  // Debounced auto-save - use startTransition to avoid flushSync
   const debouncedSave = useDebouncedCallback(
     async (newContent: string) => {
       if (isContentEmpty(newContent)) return;
 
-      setIsSaving(true);
+      startTransition(() => {
+        setIsSaving(true);
+      });
       const title = extractTitle(newContent);
 
       await updateMutation.mutateAsync({
@@ -80,10 +86,10 @@ export default function EditArticlePage() {
       });
     },
     2000,
-    { leading: false, trailing: true }
+    { leading: false, trailing: true },
   );
 
-  // Handle content changes
+  // Handle content changes - update state immediately but defer auto-save
   const handleContentChange = useCallback(
     (newContent: string) => {
       setContent(newContent);
@@ -93,14 +99,16 @@ export default function EditArticlePage() {
         debouncedSave(newContent);
       }
     },
-    [debouncedSave, isContentLoaded]
+    [debouncedSave, isContentLoaded],
   );
 
-  // Load article content once
+  // Load article content once - use startTransition to avoid flushSync
   useEffect(() => {
     if (article && !isContentLoaded) {
-      setContent(article.content);
-      setIsContentLoaded(true);
+      startTransition(() => {
+        setContent(article.content);
+        setIsContentLoaded(true);
+      });
     }
   }, [article, isContentLoaded]);
 
@@ -168,7 +176,7 @@ export default function EditArticlePage() {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b">
         <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center gap-3">
             <Button
