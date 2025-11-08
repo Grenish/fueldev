@@ -283,9 +283,18 @@ export const articleRouter = router({
           scheduledFor: true,
           viewCount: true,
           likeCount: true,
+          shareCount: true,
+          commentCount: true,
           notifyFollowers: true,
           createdAt: true,
           updatedAt: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
         },
       });
 
