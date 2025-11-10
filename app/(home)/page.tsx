@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 export default function Home() {
   return (
     <div className="w-full min-h-screen flex items-center justify-center relative overflow-hidden px-4 sm:px-6 lg:px-8">
-      {/* Background Plasma - centered on mobile, right side on desktop */}
       <div className="absolute inset-0 sm:inset-auto sm:right-0 sm:top-0 sm:w-9/12 sm:h-full w-full h-full flex items-center justify-center">
         <Plasma
           color="#ff6b35"
