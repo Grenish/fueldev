@@ -15,17 +15,19 @@ datasource db {
 }
 
 model User {
-  id            String     @id
-  name          String
-  email         String
-  emailVerified Boolean    @default(false)
-  image         String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  userLinks     UserLinks?
-  Article       Article[]
+  id                  String                @id
+  name                String
+  email               String
+  emailVerified       Boolean               @default(false)
+  image               String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now()) @updatedAt
+  sessions            Session[]
+  accounts            Account[]
+  userLinks           UserLinks?
+  Article             Article[]
+  articleComments     ArticleComment[]
+  articleCommentReply ArticleCommentReply[]
 
   @@unique([email])
   @@map("user")
@@ -123,8 +125,16 @@ model Article {
   publishedAt     DateTime?
 
   // Statistics
-  viewCount Int @default(0)
-  likeCount Int @default(0)
+  viewCount    Int @default(0)
+  likeCount    Int @default(0)
+  shareCount   Int @default(0)
+  commentCount Int @default(0)
+
+  // Relations
+  likes    ArticleLike[]
+  views    ArticleView[]
+  comments ArticleComment[]
+  shares   ArticleShare[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -135,4 +145,79 @@ model Article {
   @@index([published])
   @@index([createdAt])
   @@map("article")
+}
+
+model ArticleLike {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([articleId, userId])
+  @@index([articleId])
+  @@index([userId])
+  @@map("article_like")
+}
+
+model ArticleView {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  viewedAt  DateTime @default(now())
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([viewedAt])
+  @@map("article_view")
+}
+
+model ArticleComment {
+  id        String                @id @default(cuid())
+  articleId String
+  article   Article               @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String                @db.Text
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  replies   ArticleCommentReply[]
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("article_comment")
+}
+
+model ArticleCommentReply {
+  id        String         @id @default(cuid())
+  commentId String
+  comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String         @db.Text
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([commentId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("article_comment_reply")
+}
+
+model ArticleShare {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId    String?
+  platform  String? // "twitter", "facebook", "linkedin", "copy", etc.
+  sharedAt  DateTime @default(now())
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([sharedAt])
+  @@map("article_share")
 }

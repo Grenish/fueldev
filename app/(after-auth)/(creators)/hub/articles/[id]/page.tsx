@@ -7,39 +7,38 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc/react";
 import {
+  AlertTriangle,
   ArrowLeft,
-  Bookmark,
   Calendar,
   Clock,
   Edit,
-  Ellipsis,
   Eye,
   Globe2,
   Heart,
   Lock,
   MessageCircle,
-  MessageSquare,
   Share2,
   ThumbsUp,
+  Trash2,
   Users,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import Image from "next/image";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import DOMPurify from "dompurify";
 import "@/components/editor/editor-style.css";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
-  EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// Production-grade sanitization using DOMPurify
 function sanitizeContent(html: string): string {
-  return DOMPurify.sanitize(html, {
+  const withoutFirstH1 = html.replace(/<h1[^>]*>.*?<\/h1>/i, "");
+
+  return DOMPurify.sanitize(withoutFirstH1, {
     ALLOWED_TAGS: [
       "h1",
       "h2",
@@ -117,7 +116,12 @@ export default function ArticleViewPage() {
   const params = useParams();
   const router = useRouter();
   const articleId = params.id as string;
-  const [isLiked, setIsLiked] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+
+  const utils = trpc.useUtils();
 
   const { data: article, isLoading } = trpc.article.getById.useQuery(
     { id: articleId },
@@ -130,6 +134,88 @@ export default function ArticleViewPage() {
       refetchOnReconnect: false,
     },
   );
+
+  // Engagement queries
+  const { data: likeStatus } = trpc.articleEngagement.checkLikeStatus.useQuery(
+    { articleId },
+    { enabled: !!articleId },
+  );
+
+  const { data: engagementStats } =
+    trpc.articleEngagement.getEngagementStats.useQuery(
+      { articleId },
+      { enabled: !!articleId },
+    );
+
+  const { data: commentsData } = trpc.articleEngagement.getComments.useQuery(
+    { articleId, limit: 20 },
+    { enabled: !!articleId && !!article?.published },
+  );
+
+  // Get replies for a specific comment
+  const { data: repliesData } = trpc.articleEngagement.getReplies.useQuery(
+    { commentId: replyingTo || "", limit: 20 },
+    { enabled: !!replyingTo },
+  );
+
+  // Engagement mutations
+  const toggleLikeMutation = trpc.articleEngagement.toggleLike.useMutation({
+    onSuccess: () => {
+      utils.articleEngagement.checkLikeStatus.invalidate({ articleId });
+      utils.articleEngagement.getEngagementStats.invalidate({ articleId });
+    },
+  });
+
+  const createCommentMutation =
+    trpc.articleEngagement.createComment.useMutation({
+      onSuccess: () => {
+        setCommentText("");
+        utils.articleEngagement.getComments.invalidate({ articleId });
+        utils.articleEngagement.getEngagementStats.invalidate({ articleId });
+      },
+    });
+
+  const deleteCommentMutation =
+    trpc.articleEngagement.deleteComment.useMutation({
+      onSuccess: () => {
+        utils.articleEngagement.getComments.invalidate({ articleId });
+        utils.articleEngagement.getEngagementStats.invalidate({ articleId });
+      },
+    });
+
+  const createReplyMutation = trpc.articleEngagement.createReply.useMutation({
+    onSuccess: () => {
+      setReplyText("");
+      setReplyingTo(null);
+      utils.articleEngagement.getComments.invalidate({ articleId });
+      utils.articleEngagement.getReplies.invalidate();
+    },
+  });
+
+  const deleteReplyMutation = trpc.articleEngagement.deleteReply.useMutation({
+    onSuccess: () => {
+      utils.articleEngagement.getReplies.invalidate();
+    },
+  });
+
+  const trackShareMutation = trpc.articleEngagement.trackShare.useMutation({
+    onSuccess: () => {
+      utils.articleEngagement.getEngagementStats.invalidate({ articleId });
+    },
+  });
+
+  const trackViewMutation = trpc.articleEngagement.trackView.useMutation();
+
+  // Track view on page load for published articles
+  useEffect(() => {
+    if (article?.published && articleId) {
+      trackViewMutation.mutate({
+        articleId,
+        userAgent: navigator.userAgent,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article?.published, articleId]);
 
   const visibilityInfo = useMemo(() => {
     if (!article)
@@ -154,23 +240,75 @@ export default function ArticleViewPage() {
   }, [article]);
 
   const handleLike = () => {
-    setIsLiked(!isLiked);
-    // TODO: Implement like mutation
+    toggleLikeMutation.mutate({ articleId });
   };
 
   const handleComment = () => {
-    // TODO: Scroll to comments section or open comment dialog
-    console.log("Open comments");
+    const commentsSection = document.getElementById("comments-section");
+    commentsSection?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleShare = () => {
-    // TODO: Implement share functionality
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({
-        title: article?.title || "Article",
-        url: window.location.href,
+      try {
+        await navigator.share({
+          title: article?.title || "Article",
+          url: window.location.href,
+        });
+        trackShareMutation.mutate({ articleId, platform: "native" });
+      } catch (error) {
+        console.error("Error sharing:", error);
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      trackShareMutation.mutate({ articleId, platform: "copy" });
+    }
+  };
+
+  const handlePostComment = () => {
+    if (commentText.trim()) {
+      createCommentMutation.mutate({
+        articleId,
+        content: commentText.trim(),
       });
     }
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (confirm("Are you sure you want to delete this comment?")) {
+      deleteCommentMutation.mutate({ commentId });
+    }
+  };
+
+  const handlePostReply = (commentId: string) => {
+    if (replyText.trim()) {
+      createReplyMutation.mutate({
+        commentId,
+        content: replyText.trim(),
+      });
+    }
+  };
+
+  const handleDeleteReply = (replyId: string) => {
+    if (confirm("Are you sure you want to delete this reply?")) {
+      deleteReplyMutation.mutate({ replyId });
+    }
+  };
+
+  const handleCommentLike = (commentId: string) => {
+    setLikedComments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleReportComment = (commentId: string) => {
+    alert("Report functionality would be implemented here");
   };
 
   if (isLoading && !article) {
@@ -198,22 +336,6 @@ export default function ArticleViewPage() {
       <div className="h-full w-full flex flex-col items-center justify-center">
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="size-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.182 16.318A4.486 4.486 0 0 0 12.016 15a4.486 4.486 0 0 0-3.198 1.318M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z"
-                />
-              </svg>
-            </EmptyMedia>
             <EmptyTitle>Article Not Found</EmptyTitle>
             <EmptyDescription>
               The article you&apos;re looking for doesn&apos;t exist or has been
@@ -233,7 +355,6 @@ export default function ArticleViewPage() {
 
   return (
     <div className="h-full w-full relative overflow-y-auto pb-20">
-      {/* Article Content */}
       <article className="flex flex-col items-center px-4 sm:px-6 lg:px-8 py-8">
         <div className="w-full max-w-4xl">
           {/* Status & Visibility Badges */}
@@ -328,10 +449,14 @@ export default function ArticleViewPage() {
               </div>
             )}
 
-            {article.published && (
+            {article.published && engagementStats && (
               <>
                 <span className="text-muted-foreground/50">•</span>
-                <span>{article.viewCount || 0} views</span>
+                <span>{engagementStats.viewCount || 0} views</span>
+                <span className="text-muted-foreground/50">•</span>
+                <span>{engagementStats.likeCount || 0} likes</span>
+                <span className="text-muted-foreground/50">•</span>
+                <span>{engagementStats.commentCount || 0} comments</span>
               </>
             )}
           </div>
@@ -354,7 +479,7 @@ export default function ArticleViewPage() {
             <ArticleContent content={article.content} />
           </div>
 
-          {/* Footer Metadata (minimal) */}
+          {/* Footer Metadata */}
           <div className="mt-16 pt-8 border-t">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
               <span>
@@ -369,34 +494,328 @@ export default function ArticleViewPage() {
 
           <Separator className="my-8" />
 
-          <div className="relative w-full">
-            <div className="w-1/2 rounded-full p-3 border mx-auto sticky top-0 flex items-center justify-between gap-2">
+          {/* Engagement Actions */}
+          {article.published && (
+            <div className="flex items-center justify-between gap-4 py-6 border-y">
               <div className="flex items-center gap-2">
-                <Button size={"sm"} className="rounded-full" variant={"ghost"}>
-                  <ThumbsUp /> 0
+                <Button
+                  variant={likeStatus?.liked ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleLike}
+                  disabled={toggleLikeMutation.isPending}
+                  className="gap-2"
+                >
+                  <Heart
+                    className={cn(
+                      "h-4 w-4",
+                      likeStatus?.liked && "fill-current",
+                    )}
+                  />
+                  {engagementStats?.likeCount || 0}
                 </Button>
-                <Button size={"sm"} className="rounded-full" variant={"ghost"}>
-                  <MessageCircle /> 0
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleComment}
+                  className="gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {engagementStats?.commentCount || 0}
                 </Button>
-                <Button size={"sm"} className="rounded-full" variant={"ghost"}>
-                  <Share2 /> 0
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  disabled={trackShareMutation.isPending}
+                  className="gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {engagementStats?.shareCount || 0}
                 </Button>
               </div>
-              <div className="flex items-center gap-1">
-                <Button size={"sm"} className="rounded-full" variant={"ghost"}>
-                  <Bookmark /> 0
-                </Button>
-                <Separator orientation="vertical" />
-                <Button
-                  size={"icon-sm"}
-                  className="rounded-full"
-                  variant={"ghost"}
-                >
-                  <Ellipsis />
-                </Button>
+              <div className="text-sm text-muted-foreground">
+                {engagementStats?.viewCount || 0} views
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Comments Section */}
+          {article.published && (
+            <div
+              id="comments-section"
+              className="w-full rounded-xl border min-h-56 p-4 mt-8 flex flex-col"
+            >
+              <h2 className="text-xl font-semibold mb-4">
+                Comments ({engagementStats?.commentCount || 0})
+              </h2>
+
+              {/* Comment List */}
+              {commentsData && commentsData.items.length > 0 ? (
+                <div className="flex flex-col gap-4 w-full mb-6">
+                  {commentsData.items.map((comment) => (
+                    <div key={comment.id} className="w-full">
+                      <div className="p-3 rounded-lg hover:bg-muted/50 border transition-colors">
+                        {/* Comment Header */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarImage
+                                src={comment.user?.image || undefined}
+                                alt={comment.user?.name || "User"}
+                              />
+                              <AvatarFallback>
+                                {comment.user?.name
+                                  ? comment.user.name
+                                      .substring(0, 2)
+                                      .toUpperCase()
+                                  : "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h2 className="font-medium text-sm">
+                                {comment.user?.name || "Anonymous User"}
+                              </h2>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(
+                                  new Date(comment.createdAt),
+                                  {
+                                    addSuffix: true,
+                                  },
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          {comment.userId === article.userId && (
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDeleteComment(comment.id)}
+                              disabled={deleteCommentMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Comment Body */}
+                        <p className="text-sm text-foreground/90 leading-relaxed">
+                          {comment.content}
+                        </p>
+
+                        {/* Comment Actions */}
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              size="sm"
+                              className="rounded-full text-xs"
+                              variant={
+                                likedComments.has(comment.id)
+                                  ? "default"
+                                  : "ghost"
+                              }
+                              onClick={() => handleCommentLike(comment.id)}
+                            >
+                              <ThumbsUp
+                                className={cn(
+                                  "w-3.5 h-3.5 mr-1",
+                                  likedComments.has(comment.id) &&
+                                    "fill-current",
+                                )}
+                              />
+                              {likedComments.has(comment.id) ? "1" : "0"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="rounded-full text-xs"
+                              variant="ghost"
+                              onClick={() =>
+                                setReplyingTo(
+                                  replyingTo === comment.id ? null : comment.id,
+                                )
+                              }
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                              {comment._count.replies}
+                            </Button>
+                          </div>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-warning"
+                            title="Report comment"
+                            onClick={() => handleReportComment(comment.id)}
+                          >
+                            <AlertTriangle className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        {/* Reply Section */}
+                        {replyingTo === comment.id && (
+                          <div className="mt-4 ml-10 border-l pl-4 space-y-3">
+                            {/* Existing Replies */}
+                            {repliesData &&
+                              repliesData.items.length > 0 &&
+                              repliesData.items.map((reply) => (
+                                <div
+                                  key={reply.id}
+                                  className="flex items-start gap-3"
+                                >
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage
+                                      src={reply.user?.image || undefined}
+                                      alt={reply.user?.name || "User"}
+                                    />
+                                    <AvatarFallback>
+                                      {reply.user?.name
+                                        ? reply.user.name
+                                            .substring(0, 2)
+                                            .toUpperCase()
+                                        : "U"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 rounded-lg border p-2 bg-muted/30">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex items-center gap-2">
+                                        <h3 className="font-medium text-sm">
+                                          {reply.user?.name || "Anonymous User"}
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">
+                                          {formatDistanceToNow(
+                                            new Date(reply.createdAt),
+                                            {
+                                              addSuffix: true,
+                                            },
+                                          )}
+                                        </p>
+                                      </div>
+                                      {reply.userId === article.userId && (
+                                        <Button
+                                          size="icon-sm"
+                                          variant="ghost"
+                                          className="text-muted-foreground hover:text-destructive"
+                                          onClick={() =>
+                                            handleDeleteReply(reply.id)
+                                          }
+                                          disabled={
+                                            deleteReplyMutation.isPending
+                                          }
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <p className="text-sm">{reply.content}</p>
+                                  </div>
+                                </div>
+                              ))}
+
+                            {/* Reply Input */}
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={article.user?.image || undefined}
+                                  alt={article.user?.name || "User"}
+                                />
+                                <AvatarFallback>
+                                  {article.user?.name
+                                    ?.substring(0, 2)
+                                    .toUpperCase() || "U"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <textarea
+                                  placeholder="Write a reply..."
+                                  className="w-full resize-none rounded-lg border bg-transparent p-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                                  rows={2}
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
+                                />
+                                <div className="flex justify-end gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="rounded-full text-xs"
+                                    onClick={() => {
+                                      setReplyingTo(null);
+                                      setReplyText("");
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="rounded-full text-xs"
+                                    onClick={() => handlePostReply(comment.id)}
+                                    disabled={
+                                      !replyText.trim() ||
+                                      createReplyMutation.isPending
+                                    }
+                                  >
+                                    {createReplyMutation.isPending
+                                      ? "Posting..."
+                                      : "Reply"}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>Be the First to Comment</EmptyTitle>
+                    <EmptyDescription>
+                      This article doesn&apos;t have any comments yet. Start the
+                      conversation below.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
+
+              {/* Comment Input */}
+              <div className="mt-6 border-t pt-4">
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage
+                      src={article.user?.image || undefined}
+                      alt={article.user?.name || "User"}
+                    />
+                    <AvatarFallback>
+                      {article.user?.name?.substring(0, 2).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <textarea
+                      placeholder="Write a comment..."
+                      className="w-full resize-none rounded-lg border bg-transparent p-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      rows={3}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                    />
+                    <div className="flex justify-end mt-2">
+                      <Button
+                        size="sm"
+                        className="rounded-full text-xs"
+                        onClick={handlePostComment}
+                        disabled={
+                          !commentText.trim() || createCommentMutation.isPending
+                        }
+                      >
+                        {createCommentMutation.isPending
+                          ? "Posting..."
+                          : "Post Comment"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </article>
     </div>
