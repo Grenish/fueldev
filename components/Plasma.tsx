@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  useState,
+} from "react";
 import { Renderer, Program, Mesh, Triangle } from "ogl";
 
 interface PlasmaProps {
@@ -130,6 +136,8 @@ export const Plasma: React.FC<PlasmaProps> = ({
   const mousePos = useRef({ x: 0, y: 0 });
   const isInitialized = useRef(false);
   const lastMouseMoveTime = useRef<number>(0);
+  const [isInViewport, setIsInViewport] = useState(true);
+  const isPausedRef = useRef(false);
 
   // Memoize calculated values
   const customColorRgb = useMemo(() => hexToRgb(color), [color]);
@@ -195,6 +203,30 @@ export const Plasma: React.FC<PlasmaProps> = ({
     mouseInteractive,
     qualityValue,
   ]);
+
+  // Intersection Observer for performance optimization
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsInViewport(entry.isIntersecting);
+          isPausedRef.current = !entry.isIntersecting;
+        });
+      },
+      {
+        threshold: 0,
+        rootMargin: "50px",
+      },
+    );
+
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Initialize WebGL only once
   useEffect(() => {
@@ -265,6 +297,12 @@ export const Plasma: React.FC<PlasmaProps> = ({
     startTimeRef.current = performance.now();
 
     const animate = (timestamp: number) => {
+      // Skip rendering if component is not in viewport
+      if (isPausedRef.current) {
+        rafRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
       const timeValue = (timestamp - startTimeRef.current) * 0.001;
       const uniforms = program.uniforms as Record<
         string,
@@ -318,6 +356,10 @@ export const Plasma: React.FC<PlasmaProps> = ({
     <div
       ref={containerRef}
       className={`w-full h-full relative overflow-hidden ${className}`}
+      style={{
+        willChange: isInViewport ? "transform" : "auto",
+        contain: "layout style paint",
+      }}
     />
   );
 };
