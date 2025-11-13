@@ -38,7 +38,7 @@ export default function Home() {
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-5">
               <Link href={"/auth/signup"}>
                 <Button variant={"outline"} className="w-full sm:w-auto">
-                  Get Started
+                  Claim Your Spot
                 </Button>
               </Link>
               <Button variant={"ghost"} className="w-full sm:w-auto group">
