@@ -4,18 +4,55 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Coffee,
   Package,
   FileText,
   Users,
-  Settings,
   MapPin,
   Link as LinkIcon,
   Crown,
   LayoutPanelTop,
+  Heart,
+  MoreHorizontal,
+  Plus,
+  Sparkles,
+  Calendar,
+  Share,
+  Flag,
+  UserPlus,
+  Bell,
+  BellOff,
+  CircleDollarSign,
+  TrendingUp,
+  ShoppingBag,
+  Zap,
+  CheckCircle2,
+  MessageCircle,
+  Lock,
+  RefreshCw,
+  User,
+  HatGlasses,
+  VenetianMask,
+  Pencil,
 } from "lucide-react";
 import {
   Empty,
@@ -27,10 +64,15 @@ import {
 } from "@/components/ui/empty";
 import { Checkbox } from "@/components/animate-ui/components/radix/checkbox";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 export default function CreatorPage() {
   const [started, setStarted] = useState(false);
-  const [coffeeCount, setCoffeeCount] = useState(1);
+  const [supportAmount, setSupportAmount] = useState("500");
+  const [selectedTab, setSelectedTab] = useState("posts");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isMonthly, setIsMonthly] = useState(false);
 
   if (!started) {
     return (
@@ -58,93 +100,327 @@ export default function CreatorPage() {
   }
 
   return (
-    <div className="min-h-screen ">
-      {/* Main Content */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Left Column */}
-          <div className="space-y-8">
-            {/* Profile Section */}
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <Avatar className="h-20 w-20 border-2 border-background shadow-sm">
-                  <AvatarImage src="/avatar.png" alt="Grenish" />
-                  <AvatarFallback className="text-xl">GR</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <h2 className="text-3xl font-bold tracking-tight">
+    <div className="min-h-screen">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-12">
+        {/* Profile Header Section */}
+        <div className="space-y-8">
+          {/* Top Section with Avatar and Actions */}
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+            {/* Left: Profile Info */}
+            <div className="flex gap-4 lg:gap-6 flex-1">
+              <Avatar className="h-24 w-24 lg:h-32 lg:w-32 ring-4 ring-background shadow-xl">
+                <AvatarImage src="/avatar.png" alt="Grenish" />
+                <AvatarFallback className="text-2xl lg:text-3xl">
+                  GR
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="space-y-4 flex-1">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
                       Grenish Rai
-                    </h2>
-                    <p className="text-muted-foreground mt-1">@grenish</p>
+                    </h1>
+                    <Badge variant="default" className="rounded-full">
+                      <CheckCircle2 />
+                      Verified
+                    </Badge>
                   </div>
-                  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4" />
-                      <span>Developer</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Users className="h-4 w-4" />
-                      <span>0 supporters</span>
-                    </div>
+                  <p className="text-muted-foreground">@grenish</p>
+                </div>
+
+                <p className="text-sm lg:text-base text-foreground/80 max-w-2xl">
+                  I build what I think will benefit me in a way. Also I do code
+                  for living — crafting digital experiences one line at a time.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
+                    <span>San Francisco</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <LinkIcon className="h-3.5 w-3.5" />
+                    <a
+                      href="#"
+                      className="hover:text-foreground transition-colors"
+                    >
+                      grenish.dev
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>Joined October 2023</span>
                   </div>
                 </div>
               </div>
-
-              <div className="prose prose-sm max-w-none">
-                <p className="text-foreground/80 leading-relaxed">
-                  I build what I think will benefit me in a way. Also I do code
-                  for living (at least that&apos;s what I want to think).
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <LinkIcon className="h-3.5 w-3.5 mr-1.5" />
-                  Share
-                </Button>
-              </div>
             </div>
 
-            {/* Recent Supporters */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Recent Supporters
-                </h3>
-              </div>
-              <Card>
-                <CardContent className="p-8">
-                  <Empty>
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <Users className="h-10 w-10" />
-                      </EmptyMedia>
-                      <EmptyTitle>No supporters yet</EmptyTitle>
-                      <EmptyDescription>
-                        When people support you, they&apos;ll appear here.
-                      </EmptyDescription>
-                    </EmptyHeader>
-                  </Empty>
-                </CardContent>
-              </Card>
-            </div>
+            <div className="flex gap-3 lg:min-w-[200px]">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="default">
+                    <Heart className="h-4 w-4 mr-2" />
+                    Support
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[480px] outline-none">
+                  <DialogHeader className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl p-2 border-2 flex items-center justify-center">
+                        {isPrivate ? <HatGlasses /> : <Heart />}
+                      </div>
+                      <div>
+                        <DialogTitle className="text-xl">Grenish</DialogTitle>
+                        <DialogDescription>
+                          Support the creator you love
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </DialogHeader>
 
-            {/* Posts */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Posts
-                </h3>
-                <Button size="sm">
-                  <FileText className="h-3.5 w-3.5 mr-1.5" />
-                  New Post
-                </Button>
-              </div>
-              <Card>
-                <CardContent className="p-8">
+                  <div className="space-y-6 pt-2">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-4 gap-3">
+                        {[
+                          { value: "100" },
+                          { value: "500" },
+                          { value: "1000" },
+                          { value: "1500" },
+                        ].map((option) => (
+                          <Button
+                            key={option.value}
+                            variant={"ghost"}
+                            onClick={() => setSupportAmount(option.value)}
+                            className={`relative group h-12 rounded-xl border-2 outline-none transition-all ${
+                              supportAmount === option.value
+                                ? "bg-border/30 shadow-sm"
+                                : "border-border hover:border-foreground/30"
+                            }`}
+                          >
+                            <div className="flex flex-col items-center justify-center h-full gap-1.5">
+                              <span
+                                className={`text-lg font-semibold ${
+                                  supportAmount === option.value
+                                    ? ""
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                ₹{option.value}
+                              </span>
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
+
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          ₹
+                        </span>
+                        <Input
+                          type="number"
+                          placeholder="Or enter custom amount"
+                          value={supportAmount}
+                          onChange={(e) => setSupportAmount(e.target.value)}
+                          className="h-12 pl-8"
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-4">
+                      {!isPrivate ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
+                            <Label
+                              htmlFor="name"
+                              className="text-sm font-medium"
+                            >
+                              Your name
+                            </Label>
+                          </div>
+                          <Input
+                            id="name"
+                            placeholder="Anonymous"
+                            className="h-10"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <VenetianMask className="h-3.5 w-3.5 text-muted-foreground" />
+                            <Label
+                              htmlFor="name"
+                              className="text-sm font-medium"
+                            >
+                              Who?
+                            </Label>
+                          </div>
+                          <div className="h-10 w-full rounded-md flex items-center justify-center bg-border/50 border border-foreground/20">
+                            <HatGlasses />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Label
+                            htmlFor="message"
+                            className="text-sm font-medium"
+                          >
+                            Say something nice
+                          </Label>
+                          <span className="text-xs text-muted-foreground">
+                            (optional)
+                          </span>
+                        </div>
+                        <Textarea
+                          id="message"
+                          placeholder="Thanks for your amazing work! Keep it up 🚀"
+                          className="resize-none min-h-[80px]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Options with better visual design */}
+                    <div className="space-y-2 p-4 rounded-lg bg-muted/40">
+                      <label
+                        htmlFor="private"
+                        className="flex items-start gap-3 cursor-pointer group"
+                      >
+                        <Checkbox
+                          id="private"
+                          checked={isPrivate}
+                          onCheckedChange={setIsPrivate}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              Private support
+                            </span>
+                            <Lock className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Only you will see this
+                          </p>
+                        </div>
+                      </label>
+
+                      <Separator className="my-3" />
+
+                      <label
+                        htmlFor="monthly"
+                        className="flex items-start gap-3 cursor-pointer group"
+                      >
+                        <Checkbox
+                          id="monthly"
+                          checked={isMonthly}
+                          onCheckedChange={setIsMonthly}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              Monthly support
+                            </span>
+                            <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Support every month, cancel anytime
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Submit Button with dynamic content */}
+                    <div className="space-y-3">
+                      <Button className="w-full">
+                        {isPrivate ? <HatGlasses /> : <Heart />}
+                        {isMonthly ? (
+                          <>Support with ₹{supportAmount}/month</>
+                        ) : (
+                          <>Send ₹{supportAmount}</>
+                        )}
+                      </Button>
+
+                      <p className="text-center text-xs text-muted-foreground">
+                        Secured payment • Cancel anytime
+                      </p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon-sm">
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem>
+                    <Share />
+                    Share Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <LinkIcon />
+                    Copy Link
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Pencil />
+                    Edit Page
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Content Tabs */}
+          <Tabs
+            value={selectedTab}
+            onValueChange={setSelectedTab}
+            className="space-y-8"
+          >
+            <TabsList className="w-full justify-start h-12 p-1 bg-muted/30">
+              <TabsTrigger
+                value="posts"
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Posts
+              </TabsTrigger>
+              <TabsTrigger
+                value="supporters"
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Supporters
+              </TabsTrigger>
+              <TabsTrigger
+                value="membership"
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Crown className="h-4 w-4 mr-2" />
+                Membership
+              </TabsTrigger>
+              <TabsTrigger
+                value="shop"
+                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <ShoppingBag className="h-4 w-4 mr-2" />
+                Shop
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Posts Content */}
+            <TabsContent value="posts" className="space-y-4">
+              <Card className="border-dashed">
+                <CardContent className="py-16">
                   <Empty>
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
@@ -152,191 +428,112 @@ export default function CreatorPage() {
                       </EmptyMedia>
                       <EmptyTitle>No posts yet</EmptyTitle>
                       <EmptyDescription>
-                        Share updates, thoughts, and exclusive content with your
-                        supporters.
+                        Share your first update with your followers
                       </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                       <Button>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Create Your First Post
+                        <Plus />
+                        Create Post
                       </Button>
                     </EmptyContent>
                   </Empty>
                 </CardContent>
               </Card>
-            </div>
+            </TabsContent>
 
-            {/* Shop */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Shop
-                </h3>
+            {/* Supporters Content */}
+            <TabsContent value="supporters" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Recent Supporters */}
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Heart className="h-4 w-4" />
+                      Recent Supporters
+                    </h3>
+                  </CardHeader>
+                  <CardContent>
+                    <Empty>
+                      <EmptyDescription className="text-xs">
+                        Your supporters will appear here
+                      </EmptyDescription>
+                    </Empty>
+                  </CardContent>
+                </Card>
+
+                {/* Top Supporter */}
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Top Supporter
+                    </h3>
+                  </CardHeader>
+                  <CardContent>
+                    <Empty>
+                      <EmptyDescription className="text-xs">
+                        Your biggest supporter will be featured here
+                      </EmptyDescription>
+                    </Empty>
+                  </CardContent>
+                </Card>
               </div>
-              <Card>
-                <CardContent className="p-8">
+            </TabsContent>
+
+            {/* Membership Content */}
+            <TabsContent value="membership" className="space-y-6">
+              <Card className="border-dashed">
+                <CardContent className="py-16">
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <Crown className="h-10 w-10" />
+                      </EmptyMedia>
+                      <EmptyTitle>No membership tiers</EmptyTitle>
+                      <EmptyDescription>
+                        Create membership plans to offer exclusive perks to your
+                        supporters
+                      </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                      <Button>
+                        <Plus />
+                        Create Membership Tier
+                      </Button>
+                    </EmptyContent>
+                  </Empty>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Shop Content */}
+            <TabsContent value="shop" className="space-y-4">
+              <Card className="border-dashed">
+                <CardContent className="py-16">
                   <Empty>
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
                         <Package className="h-10 w-10" />
                       </EmptyMedia>
-                      <EmptyTitle>Shop not set up</EmptyTitle>
+                      <EmptyTitle>Your shop is empty</EmptyTitle>
                       <EmptyDescription>
-                        Sell digital products, merchandise, or services to your
-                        audience.
+                        Start selling digital products, services, or merchandise
                       </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
-                      <Button variant="outline">
-                        <Package className="mr-2 h-4 w-4" />
-                        Set Up Your Shop
+                      <Button>
+                        <Plus />
+                        Add Product
                       </Button>
                     </EmptyContent>
                   </Empty>
                 </CardContent>
               </Card>
-            </div>
-          </div>
-
-          {/* Right Column - Sticky Sidebar */}
-          <div>
-            <div className="sticky top-20 space-y-6">
-              {/* Support Card */}
-              <Card className="shadow-sm border">
-                <CardContent className="p-6 space-y-5">
-                  {/* Header */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1">
-                      Support my work
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Buy me a tea to keep me going
-                    </p>
-                  </div>
-
-                  {/* Amount Selection */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
-                      <div className="w-10 h-10 rounded-md bg-background border flex items-center justify-center shrink-0">
-                        <Coffee className="h-4 w-4" />
-                      </div>
-                      <div className="flex gap-1.5 flex-1">
-                        {[1, 3, 5].map((n) => (
-                          <button
-                            key={n}
-                            onClick={() => setCoffeeCount(n)}
-                            className={`
-                              flex-1 h-9 rounded-full text-sm font-medium transition-all
-                              ${
-                                coffeeCount === n
-                                  ? "bg-foreground text-background"
-                                  : "bg-background hover:bg-accent"
-                              }
-                            `}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                        <Input
-                          type="number"
-                          className="w-14 h-9 text-center text-sm p-0 bg-background [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          placeholder="10"
-                          min="1"
-                          onChange={(e) =>
-                            setCoffeeCount(parseInt(e.target.value) || 1)
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="h-px bg-border" />
-
-                  {/* Form Fields */}
-                  <div className="space-y-3">
-                    <Input
-                      placeholder="Name or @social"
-                      className="h-10 bg-muted/30 border-muted-foreground/20"
-                    />
-
-                    <Textarea
-                      placeholder="Message (optional)"
-                      rows={3}
-                      className="resize-none text-sm bg-muted/30 border-muted-foreground/20"
-                    />
-                  </div>
-
-                  {/* Options */}
-                  <div className="space-y-2 text-sm">
-                    <Label
-                      htmlFor="private"
-                      className="flex items-center gap-2.5 cursor-pointer hover:text-foreground transition-colors"
-                    >
-                      <Checkbox
-                        id="private"
-                        className="outline-none"
-                        variant={"accent"}
-                      />
-                      Make this private
-                    </Label>
-
-                    <Label
-                      htmlFor="monthly"
-                      className="flex items-center gap-2.5 cursor-pointer hover:text-foreground transition-colors"
-                    >
-                      <Checkbox
-                        id="monthly"
-                        className="outline-none"
-                        variant={"accent"}
-                      />
-                      <span>Make this monthly</span>
-                    </Label>
-                  </div>
-
-                  {/* Support Button */}
-                  <Button className="w-full h-11 font-medium" size="lg">
-                    Support ₹{coffeeCount * 100}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Membership Card */}
-              <Card className="border-2">
-                <CardContent className="p-6 space-y-4">
-                  <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/10 mb-1">
-                      <Crown className="h-6 w-6 text-amber-600 dark:text-amber-500" />
-                    </div>
-                    <h3 className="text-lg font-semibold">Become a Member</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Get exclusive benefits and perks
-                    </p>
-                  </div>
-
-                  <div className="pt-2">
-                    <Empty>
-                      <EmptyHeader>
-                        <EmptyDescription className="text-center">
-                          Membership tiers not set up yet. Offer exclusive
-                          content to your supporters.
-                        </EmptyDescription>
-                      </EmptyHeader>
-                      <EmptyContent>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Settings className="mr-2 h-3.5 w-3.5" />
-                          Set Up Membership
-                        </Button>
-                      </EmptyContent>
-                    </Empty>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
