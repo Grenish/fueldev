@@ -8,6 +8,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Default upload preset
+const DEFAULT_UPLOAD_PRESET = "fueldev-compress";
+
 export async function POST(request: NextRequest) {
   try {
     // Validate environment variables
@@ -20,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { folder, public_id } = body;
+    const { folder, public_id, upload_preset } = body;
 
     if (!folder || !public_id) {
       return NextResponse.json(
@@ -31,27 +34,36 @@ export async function POST(request: NextRequest) {
 
     const timestamp = Math.round(new Date().getTime() / 1000);
 
+    // Use provided upload_preset or default
+    const preset = upload_preset || DEFAULT_UPLOAD_PRESET;
+
     // Parameters to sign - MUST match exactly what's sent to Cloudinary
-    // DO NOT include upload_preset in signature params - it's sent separately
-    const paramsToSign = {
+    // Include upload_preset in signed parameters (optional for signed uploads per Cloudinary docs)
+    // These will be automatically sorted alphabetically by Cloudinary's api_sign_request
+    const paramsToSign: Record<string, string | number> = {
       folder: folder,
       public_id: public_id,
       timestamp: timestamp,
+      upload_preset: preset,
     };
 
-    console.log("Signing params:", { ...paramsToSign, folder: "***" });
+    console.log("Signing params:", paramsToSign);
 
     // Generate signature for the upload parameters
+    // Cloudinary's api_sign_request automatically handles alphabetical sorting
     const signature = cloudinary.utils.api_sign_request(
       paramsToSign,
       process.env.CLOUDINARY_API_SECRET!,
     );
+
+    console.log("Generated signature:", signature);
 
     return NextResponse.json({
       signature,
       timestamp,
       folder,
       public_id,
+      upload_preset: preset,
       apiKey: process.env.CLOUDINARY_API_KEY,
       cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
     });
