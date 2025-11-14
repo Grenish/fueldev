@@ -23,7 +23,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Coffee,
   Package,
   FileText,
   Users,
@@ -37,14 +36,6 @@ import {
   Sparkles,
   Calendar,
   Share,
-  Flag,
-  UserPlus,
-  Bell,
-  BellOff,
-  CircleDollarSign,
-  TrendingUp,
-  ShoppingBag,
-  Zap,
   CheckCircle2,
   MessageCircle,
   Lock,
@@ -53,6 +44,8 @@ import {
   HatGlasses,
   VenetianMask,
   Pencil,
+  ShoppingBag,
+  BadgeCheck,
 } from "lucide-react";
 import {
   Empty,
@@ -66,6 +59,11 @@ import { Checkbox } from "@/components/animate-ui/components/radix/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function CreatorPage() {
   const [started, setStarted] = useState(false);
@@ -121,10 +119,14 @@ export default function CreatorPage() {
                     <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
                       Grenish Rai
                     </h1>
-                    <Badge variant="default" className="rounded-full">
-                      <CheckCircle2 />
-                      Verified
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <BadgeCheck className="text-blue-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        The user has verified both email and identity
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   <p className="text-muted-foreground">@grenish</p>
                 </div>
