@@ -36,7 +36,6 @@ import {
   Sparkles,
   Calendar,
   Share,
-  CheckCircle2,
   MessageCircle,
   Lock,
   RefreshCw,
@@ -58,7 +57,6 @@ import {
 import { Checkbox } from "@/components/animate-ui/components/radix/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
