@@ -34,6 +34,23 @@ import {
 } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  CommentBox,
+  CommentBoxThread,
+  CommentBoxItem,
+  CommentBoxAvatar,
+  CommentBoxAvatarImage,
+  CommentBoxAvatarFallback,
+  CommentBoxBody,
+  CommentBoxHeader,
+  CommentBoxAuthor,
+  CommentBoxTime,
+  CommentBoxText,
+  CommentBoxActions,
+  CommentBoxAction,
+  CommentBoxReplies,
+  CommentBoxInput,
+} from "@/components/ui/comment";
 
 function sanitizeContent(html: string): string {
   const withoutFirstH1 = html.replace(/<h1[^>]*>.*?<\/h1>/i, "");
@@ -117,7 +134,7 @@ export default function ArticleViewPage() {
   const router = useRouter();
   const articleId = params.id as string;
   const [commentText, setCommentText] = useState("");
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
 
@@ -154,8 +171,8 @@ export default function ArticleViewPage() {
 
   // Get replies for a specific comment
   const { data: repliesData } = trpc.articleEngagement.getReplies.useQuery(
-    { commentId: replyingTo || "", limit: 20 },
-    { enabled: !!replyingTo },
+    { commentId: openThreadId || "", limit: 20 },
+    { enabled: !!openThreadId },
   );
 
   // Engagement mutations
@@ -184,17 +201,27 @@ export default function ArticleViewPage() {
     });
 
   const createReplyMutation = trpc.articleEngagement.createReply.useMutation({
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       setReplyText("");
-      setReplyingTo(null);
+      setOpenThreadId(variables.commentId);
       utils.articleEngagement.getComments.invalidate({ articleId });
-      utils.articleEngagement.getReplies.invalidate();
+      utils.articleEngagement.getReplies.invalidate({
+        commentId: variables.commentId,
+        limit: 20,
+      });
     },
   });
 
   const deleteReplyMutation = trpc.articleEngagement.deleteReply.useMutation({
     onSuccess: () => {
-      utils.articleEngagement.getReplies.invalidate();
+      if (openThreadId) {
+        utils.articleEngagement.getReplies.invalidate({
+          commentId: openThreadId,
+          limit: 20,
+        });
+      } else {
+        utils.articleEngagement.getReplies.invalidate();
+      }
     },
   });
 
@@ -246,6 +273,18 @@ export default function ArticleViewPage() {
   const handleComment = () => {
     const commentsSection = document.getElementById("comments-section");
     commentsSection?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleToggleReplyThread = (commentId: string) => {
+    setOpenThreadId((prev) => {
+      const nextId = prev === commentId ? null : commentId;
+
+      if (nextId === null || nextId !== prev) {
+        setReplyText("");
+      }
+
+      return nextId;
+    });
   };
 
   const handleShare = async () => {
@@ -551,220 +590,217 @@ export default function ArticleViewPage() {
 
               {/* Comment List */}
               {commentsData && commentsData.items.length > 0 ? (
-                <div className="flex flex-col gap-4 w-full mb-6">
-                  {commentsData.items.map((comment) => (
-                    <div key={comment.id} className="w-full">
-                      <div className="p-3 rounded-lg hover:bg-muted/50 border transition-colors">
-                        {/* Comment Header */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9">
-                              <AvatarImage
-                                src={comment.user?.image || undefined}
-                                alt={comment.user?.name || "User"}
-                              />
-                              <AvatarFallback>
-                                {comment.user?.name
-                                  ? comment.user.name
-                                      .substring(0, 2)
-                                      .toUpperCase()
-                                  : "U"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h2 className="font-medium text-sm">
-                                {comment.user?.name || "Anonymous User"}
-                              </h2>
-                              <p className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(
-                                  new Date(comment.createdAt),
-                                  {
-                                    addSuffix: true,
-                                  },
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          {comment.userId === article.userId && (
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDeleteComment(comment.id)}
-                              disabled={deleteCommentMutation.isPending}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* Comment Body */}
-                        <p className="text-sm text-foreground/90 leading-relaxed">
-                          {comment.content}
-                        </p>
-
-                        {/* Comment Actions */}
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="flex items-center gap-1.5">
-                            <Button
-                              size="sm"
-                              className="rounded-full text-xs"
-                              variant={
-                                likedComments.has(comment.id)
-                                  ? "default"
-                                  : "ghost"
-                              }
-                              onClick={() => handleCommentLike(comment.id)}
-                            >
-                              <ThumbsUp
-                                className={cn(
-                                  "w-3.5 h-3.5 mr-1",
-                                  likedComments.has(comment.id) &&
-                                    "fill-current",
-                                )}
-                              />
-                              {likedComments.has(comment.id) ? "1" : "0"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="rounded-full text-xs"
-                              variant="ghost"
-                              onClick={() =>
-                                setReplyingTo(
-                                  replyingTo === comment.id ? null : comment.id,
-                                )
-                              }
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 mr-1" />
-                              {comment._count.replies}
-                            </Button>
-                          </div>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            className="text-muted-foreground hover:text-warning"
-                            title="Report comment"
-                            onClick={() => handleReportComment(comment.id)}
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        {/* Reply Section */}
-                        {replyingTo === comment.id && (
-                          <div className="mt-4 ml-10 border-l pl-4 space-y-3">
-                            {/* Existing Replies */}
-                            {repliesData &&
-                              repliesData.items.length > 0 &&
-                              repliesData.items.map((reply) => (
-                                <div
-                                  key={reply.id}
-                                  className="flex items-start gap-3"
+                <CommentBox className="w-full mb-6 space-y-4">
+                  {commentsData.items.map((comment) => {
+                    const isReplyOpen = openThreadId === comment.id;
+                    const replyList =
+                      isReplyOpen && repliesData?.items
+                        ? repliesData.items
+                        : [];
+                    return (
+                      <CommentBoxThread key={comment.id}>
+                        <CommentBoxItem>
+                          <CommentBoxAvatar>
+                            <CommentBoxAvatarImage
+                              src={comment.user?.image || undefined}
+                              alt={comment.user?.name || "User"}
+                            />
+                            <CommentBoxAvatarFallback>
+                              {comment.user?.name
+                                ? comment.user.name
+                                    .substring(0, 2)
+                                    .toUpperCase()
+                                : "U"}
+                            </CommentBoxAvatarFallback>
+                          </CommentBoxAvatar>
+                          <CommentBoxBody>
+                            <div className="flex items-start justify-between gap-3">
+                              <CommentBoxHeader>
+                                <CommentBoxAuthor>
+                                  {comment.user?.name || "Anonymous User"}
+                                </CommentBoxAuthor>
+                                <CommentBoxTime
+                                  dateTime={new Date(
+                                    comment.createdAt,
+                                  ).toISOString()}
                                 >
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage
-                                      src={reply.user?.image || undefined}
-                                      alt={reply.user?.name || "User"}
-                                    />
-                                    <AvatarFallback>
-                                      {reply.user?.name
-                                        ? reply.user.name
-                                            .substring(0, 2)
-                                            .toUpperCase()
-                                        : "U"}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1 rounded-lg border p-2 bg-muted/30">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <div className="flex items-center gap-2">
-                                        <h3 className="font-medium text-sm">
-                                          {reply.user?.name || "Anonymous User"}
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground">
-                                          {formatDistanceToNow(
-                                            new Date(reply.createdAt),
-                                            {
-                                              addSuffix: true,
-                                            },
-                                          )}
-                                        </p>
-                                      </div>
-                                      {reply.userId === article.userId && (
-                                        <Button
-                                          size="icon-sm"
-                                          variant="ghost"
-                                          className="text-muted-foreground hover:text-destructive"
-                                          onClick={() =>
-                                            handleDeleteReply(reply.id)
-                                          }
-                                          disabled={
-                                            deleteReplyMutation.isPending
-                                          }
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                    <p className="text-sm">{reply.content}</p>
-                                  </div>
-                                </div>
-                              ))}
-
-                            {/* Reply Input */}
-                            <div className="flex items-start gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage
-                                  src={article.user?.image || undefined}
-                                  alt={article.user?.name || "User"}
-                                />
-                                <AvatarFallback>
-                                  {article.user?.name
-                                    ?.substring(0, 2)
-                                    .toUpperCase() || "U"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <textarea
-                                  placeholder="Write a reply..."
-                                  className="w-full resize-none rounded-lg border bg-transparent p-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                                  rows={2}
-                                  value={replyText}
-                                  onChange={(e) => setReplyText(e.target.value)}
-                                />
-                                <div className="flex justify-end gap-2 mt-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="rounded-full text-xs"
-                                    onClick={() => {
-                                      setReplyingTo(null);
-                                      setReplyText("");
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="rounded-full text-xs"
-                                    onClick={() => handlePostReply(comment.id)}
-                                    disabled={
-                                      !replyText.trim() ||
-                                      createReplyMutation.isPending
-                                    }
-                                  >
-                                    {createReplyMutation.isPending
-                                      ? "Posting..."
-                                      : "Reply"}
-                                  </Button>
-                                </div>
-                              </div>
+                                  {formatDistanceToNow(
+                                    new Date(comment.createdAt),
+                                    { addSuffix: true },
+                                  )}
+                                </CommentBoxTime>
+                              </CommentBoxHeader>
+                              {comment.userId === article.userId && (
+                                <Button
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  className="text-muted-foreground hover:text-destructive"
+                                  onClick={() =>
+                                    handleDeleteComment(comment.id)
+                                  }
+                                  disabled={deleteCommentMutation.isPending}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+
+                            <CommentBoxText>{comment.content}</CommentBoxText>
+
+                            <CommentBoxActions>
+                              <CommentBoxAction
+                                size="sm"
+                                variant="ghost"
+                                active={likedComments.has(comment.id)}
+                                onClick={() => handleCommentLike(comment.id)}
+                              >
+                                <ThumbsUp className="w-3.5 h-3.5 mr-1" />
+                                {likedComments.has(comment.id)
+                                  ? "Liked"
+                                  : "Like"}{" "}
+                                ({likedComments.has(comment.id) ? 1 : 0})
+                              </CommentBoxAction>
+                              <CommentBoxAction
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleToggleReplyThread(comment.id)
+                                }
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                                Reply ({comment._count?.replies ?? 0})
+                              </CommentBoxAction>
+                              <CommentBoxAction
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleReportComment(comment.id)}
+                              >
+                                <AlertTriangle className="w-4 h-4 mr-1" />
+                                Report
+                              </CommentBoxAction>
+                            </CommentBoxActions>
+
+                            {isReplyOpen && (
+                              <CommentBoxReplies className="mt-3 space-y-2">
+                                {replyList.length > 0 &&
+                                  replyList.map((reply) => (
+                                    <CommentBoxThread
+                                      level={1}
+                                      key={reply.id}
+                                      showLine
+                                    >
+                                      <CommentBoxItem isReply>
+                                        <CommentBoxAvatar>
+                                          <CommentBoxAvatarImage
+                                            src={reply.user?.image || undefined}
+                                            alt={reply.user?.name || "User"}
+                                          />
+                                          <CommentBoxAvatarFallback>
+                                            {reply.user?.name
+                                              ? reply.user.name
+                                                  .substring(0, 2)
+                                                  .toUpperCase()
+                                              : "U"}
+                                          </CommentBoxAvatarFallback>
+                                        </CommentBoxAvatar>
+                                        <CommentBoxBody>
+                                          <div className="flex items-start justify-between gap-3">
+                                            <CommentBoxHeader>
+                                              <CommentBoxAuthor>
+                                                {reply.user?.name ||
+                                                  "Anonymous User"}
+                                              </CommentBoxAuthor>
+                                              <CommentBoxTime
+                                                dateTime={new Date(
+                                                  reply.createdAt,
+                                                ).toISOString()}
+                                              >
+                                                {formatDistanceToNow(
+                                                  new Date(reply.createdAt),
+                                                  { addSuffix: true },
+                                                )}
+                                              </CommentBoxTime>
+                                            </CommentBoxHeader>
+                                            {reply.userId ===
+                                              article.userId && (
+                                              <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                className="text-muted-foreground hover:text-destructive"
+                                                onClick={() =>
+                                                  handleDeleteReply(reply.id)
+                                                }
+                                                disabled={
+                                                  deleteReplyMutation.isPending
+                                                }
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                          <CommentBoxText>
+                                            {reply.content}
+                                          </CommentBoxText>
+                                        </CommentBoxBody>
+                                      </CommentBoxItem>
+                                    </CommentBoxThread>
+                                  ))}
+                                <CommentBoxThread level={1} showLine>
+                                  <CommentBoxItem isReply>
+                                    <CommentBoxAvatar>
+                                      <CommentBoxAvatarImage
+                                        src={article.user?.image || undefined}
+                                        alt={article.user?.name || "User"}
+                                      />
+                                      <CommentBoxAvatarFallback>
+                                        {article.user?.name
+                                          ?.substring(0, 2)
+                                          .toUpperCase() || "U"}
+                                      </CommentBoxAvatarFallback>
+                                    </CommentBoxAvatar>
+                                    <CommentBoxBody>
+                                      <CommentBoxInput
+                                        placeholder="Write a reply..."
+                                        rows={2}
+                                        value={replyText}
+                                        onChange={(e) =>
+                                          setReplyText(e.target.value)
+                                        }
+                                        onSubmit={() =>
+                                          handlePostReply(comment.id)
+                                        }
+                                        submitText={
+                                          createReplyMutation.isPending
+                                            ? "Posting..."
+                                            : "Reply"
+                                        }
+                                        onCancel={() =>
+                                          handleToggleReplyThread(comment.id)
+                                        }
+                                        cancelText="Cancel"
+                                        submitButtonProps={{
+                                          className: "rounded-full text-xs",
+                                          disabled:
+                                            createReplyMutation.isPending ||
+                                            !replyText.trim(),
+                                        }}
+                                        cancelButtonProps={{
+                                          className: "rounded-full text-xs",
+                                          disabled:
+                                            createReplyMutation.isPending,
+                                        }}
+                                      />
+                                    </CommentBoxBody>
+                                  </CommentBoxItem>
+                                </CommentBoxThread>
+                              </CommentBoxReplies>
+                            )}
+                          </CommentBoxBody>
+                        </CommentBoxItem>
+                      </CommentBoxThread>
+                    );
+                  })}
+                </CommentBox>
               ) : (
                 <Empty>
                   <EmptyHeader>
@@ -790,27 +826,24 @@ export default function ArticleViewPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <textarea
+                    <CommentBoxInput
                       placeholder="Write a comment..."
-                      className="w-full resize-none rounded-lg border bg-transparent p-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                       rows={3}
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
-                    />
-                    <div className="flex justify-end mt-2">
-                      <Button
-                        size="sm"
-                        className="rounded-full text-xs"
-                        onClick={handlePostComment}
-                        disabled={
-                          !commentText.trim() || createCommentMutation.isPending
-                        }
-                      >
-                        {createCommentMutation.isPending
+                      onSubmit={handlePostComment}
+                      submitText={
+                        createCommentMutation.isPending
                           ? "Posting..."
-                          : "Post Comment"}
-                      </Button>
-                    </div>
+                          : "Post Comment"
+                      }
+                      submitButtonProps={{
+                        className: "rounded-full text-xs",
+                        disabled:
+                          createCommentMutation.isPending ||
+                          !commentText.trim(),
+                      }}
+                    />
                   </div>
                 </div>
               </div>
