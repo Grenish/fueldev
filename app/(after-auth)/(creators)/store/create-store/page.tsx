@@ -1,7 +1,9 @@
+import { Spinner } from "@/components/ui/spinner";
+
 export default function CreateStore() {
   return (
-    <>
-      <h2>Create Store</h2>
-    </>
+    <div className="w-full min-h-full h-full flex items-center justify-center">
+      <Spinner />
+    </div>
   );
 }
