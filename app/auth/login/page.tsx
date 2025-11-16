@@ -38,9 +38,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <div className="bg-muted relative hidden lg:block">
-        <Image src="/milky-way.png" alt="Milky Way Background" fill priority />
-      </div>
+      <div className="bg-muted relative hidden lg:block bg-[url('/milky-way.png')] bg-cover bg-no-repeat bg-center"></div>
     </div>
   );
 }
