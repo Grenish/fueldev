@@ -28,6 +28,8 @@ model User {
   Article             Article[]
   articleComments     ArticleComment[]
   articleCommentReply ArticleCommentReply[]
+  polls               Poll[]
+  pollVotes           PollVote[]
 
   @@unique([email])
   @@map("user")
@@ -220,4 +222,57 @@ model ArticleShare {
   @@index([userId])
   @@index([sharedAt])
   @@map("article_share")
+}
+
+model Poll {
+  id             String   @id @default(cuid())
+  question       String
+  isActive       Boolean  @default(true)
+  allowsMultiple Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userID  String
+  user    User         @relation(fields: [userID], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
+
+  @@index([userID])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model PollOption {
+  id        String @id @default(cuid())
+  text      String
+  order     Int
+  voteCount Int    @default(0)
+
+  pollId String
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  PollVote[]
+
+  @@unique([pollId, order])
+  @@index([pollId])
+  @@map("poll_option")
+}
+
+model PollVote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  pollId String
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  optionId String
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId, optionId])
+  @@index([pollId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("poll_vote")
 }
