@@ -121,6 +121,7 @@ export function SignupForm({
           <Input
             id="password"
             name="password"
+            placeholder="••••••••"
             type="password"
             required
             disabled={isLoading}
@@ -135,6 +136,7 @@ export function SignupForm({
           <Input
             id="confirm-password"
             name="confirm-password"
+            placeholder="••••••••"
             type="password"
             required
             disabled={isLoading}

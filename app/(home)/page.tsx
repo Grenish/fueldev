@@ -9,7 +9,10 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div>
-      <div className="w-full min-h-screen flex items-center justify-center relative overflow-hidden px-4 sm:px-6 lg:px-8">
+      <div
+        className="w-full min-h-screen flex items-center justify-center relative overflow-hidden px-4 sm:px-6 lg:px-8"
+        style={{ contain: "layout style paint" }}
+      >
         <div className="absolute inset-0 sm:inset-auto sm:right-0 sm:top-0 sm:w-9/12 sm:h-full w-full h-full flex items-center justify-center">
           <Plasma
             color="#ff6b35"
@@ -17,7 +20,7 @@ export default function Home() {
             direction="forward"
             scale={0.5}
             opacity={0.8}
-            quality="high"
+            quality="medium"
             mouseInteractive={false}
           />
         </div>
@@ -35,7 +38,7 @@ export default function Home() {
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-5">
               <Link href={"/auth/signup"}>
                 <Button variant={"outline"} className="w-full sm:w-auto">
-                  Get Started
+                  Claim Your Spot
                 </Button>
               </Link>
               <Button variant={"ghost"} className="w-full sm:w-auto group">
@@ -46,13 +49,22 @@ export default function Home() {
           </div>
         </div>
       </div>
-      <section className="flex items-center justify-center">
+      <section
+        className="flex items-center justify-center"
+        style={{ contain: "layout style paint" }}
+      >
         <ProblemsSection />
       </section>
-      <section className="flex items-center justify-center">
-        <FeaturesSection />
+      <section
+        className="flex items-center justify-center"
+        style={{ contain: "layout style paint" }}
+      >
+        {/*<FeaturesSection />*/}
       </section>
-      <section className="flex items-center justify-center">
+      <section
+        className="flex items-center justify-center"
+        style={{ contain: "layout style paint" }}
+      >
         <IntegrationSection />
       </section>
     </div>

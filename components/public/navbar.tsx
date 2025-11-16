@@ -10,7 +10,6 @@ import {
   User,
   Link2,
   BarChart3,
-  DollarSign,
   Video,
   PenTool,
   Palette,

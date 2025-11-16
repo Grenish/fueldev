@@ -143,6 +143,7 @@ export function ImageUploadDialog({
         body: JSON.stringify({
           folder: cloudinaryFolder,
           public_id: `${Date.now()}-${Math.random().toString(36).substring(2)}`,
+          upload_preset: "fueldev-compress",
         }),
       });
 
@@ -162,11 +163,12 @@ export function ImageUploadDialog({
       // IMPORTANT: Use the EXACT same parameters that were signed
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("api_key", signData.apiKey);
-      formData.append("timestamp", signData.timestamp.toString());
-      formData.append("signature", signData.signature);
       formData.append("folder", signData.folder);
       formData.append("public_id", signData.public_id);
+      formData.append("timestamp", signData.timestamp.toString());
+      formData.append("upload_preset", signData.upload_preset);
+      formData.append("api_key", signData.apiKey);
+      formData.append("signature", signData.signature);
 
       // Upload to Cloudinary
       const uploadResponse = await fetch(

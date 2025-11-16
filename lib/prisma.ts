@@ -9,11 +9,6 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
   });
 
 // Prevent multiple instances in development
@@ -28,6 +23,17 @@ if (typeof window === "undefined") {
   };
 
   process.on("beforeExit", cleanup);
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  process.on("SIGINT", async () => {
+    await cleanup();
+    process.exit(0);
+  });
+  process.on("SIGTERM", async () => {
+    await cleanup();
+    process.exit(0);
+  });
+  process.on("SIGUSR2", async () => {
+    // Nodemon restart signal
+    await cleanup();
+    process.kill(process.pid, "SIGUSR2");
+  });
 }

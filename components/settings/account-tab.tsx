@@ -179,7 +179,7 @@ export function AccountTab({ user }: AccountTabProps) {
             Manage your account information and preferences
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-8 outline-none">
           {/* Profile Picture Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">

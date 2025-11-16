@@ -123,6 +123,7 @@ export function AvatarUpload({
         body: JSON.stringify({
           folder: `fueldev/avatars/${userId}`,
           public_id: "avatar",
+          upload_preset: "fueldev-compress",
         }),
       });
 
@@ -145,26 +146,26 @@ export function AvatarUpload({
       }
 
       // Create form data for Cloudinary upload
-      // Order matters for Cloudinary API
+      // IMPORTANT: Use exact same parameters and order as signed
+      // Signature MUST be appended last
       const formData = new FormData();
       formData.append("file", selectedFile);
-      formData.append("upload_preset", "ml_default");
-      formData.append("api_key", signData.apiKey);
+      formData.append("folder", signData.folder);
+      formData.append("public_id", signData.public_id);
       formData.append("timestamp", signData.timestamp.toString());
-      formData.append("folder", `fueldev/avatars/${userId}`);
-      formData.append("public_id", "avatar");
+      formData.append("upload_preset", signData.upload_preset);
+      formData.append("api_key", signData.apiKey);
       formData.append("signature", signData.signature);
 
-      // Log form data for debugging
-      console.log("Form data entries:");
-      for (const [key, value] of formData.entries()) {
-        console.log(
-          `  ${key}:`,
-          key === "file" ? `[File: ${selectedFile.name}]` : value,
-        );
-      }
-
-      console.log("Uploading to Cloudinary:", signData.cloudName);
+      // Log exact parameters for debugging
+      console.log("Upload parameters:");
+      console.log("  folder:", signData.folder);
+      console.log("  public_id:", signData.public_id);
+      console.log("  timestamp:", signData.timestamp);
+      console.log("  upload_preset:", signData.upload_preset);
+      console.log("  signature:", signData.signature);
+      console.log("  file:", selectedFile.name, `(${selectedFile.size} bytes)`);
+      console.log("Uploading to Cloudinary cloud:", signData.cloudName);
 
       const uploadResponse = await fetch(
         `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,

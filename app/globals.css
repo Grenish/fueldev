@@ -215,8 +215,38 @@
   button {
     @apply cursor-pointer;
   }
+
+  /* Scroll performance optimizations */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* GPU acceleration for better scroll performance */
+  section {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Optimize animations and transitions */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 @theme {
   --font-times: "Times New Roman", Times, serif;
+}
+
+/* Chrome, Safari, Edge */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
 }
