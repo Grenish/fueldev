@@ -41,7 +41,10 @@ export function SettingsTab({
   const [formData, setFormData] = useState<StoreSettings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const handleInputChange = (field: keyof StoreSettings, value: any) => {
+  const handleInputChange = (
+    field: keyof StoreSettings,
+    value: React.ReactNode,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
@@ -62,12 +65,13 @@ export function SettingsTab({
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-3xl mx-auto">
-      <div className="space-y-8">
-        {/* Section: Store Details */}
+    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 mx-auto">
+      <div className="space-y-8 w-full">
         <section className="space-y-4">
           <div>
-            <h3 className="text-lg font-medium">Store Details</h3>
+            <h3 className="text-xl font-semibold tracking-tight">
+              Store Details
+            </h3>
             <p className="text-sm text-muted-foreground">
               Manage your public store profile.
             </p>
@@ -78,9 +82,8 @@ export function SettingsTab({
               <Input
                 id="storeName"
                 value={formData.storeName}
-                onChange={(e) =>
-                  handleInputChange("storeName", e.target.value)
-                }
+                disabled
+                onChange={(e) => handleInputChange("storeName", e.target.value)}
               />
             </div>
             <div className="grid gap-2">
@@ -91,8 +94,11 @@ export function SettingsTab({
                 </span>
                 <Input
                   id="storeUrl"
+                  disabled
                   value={formData.storeUrl}
-                  onChange={(e) => handleInputChange("storeUrl", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("storeUrl", e.target.value)
+                  }
                   className="rounded-l-none"
                 />
               </div>
@@ -125,7 +131,8 @@ export function SettingsTab({
               <div className="space-y-0.5">
                 <Label>Store Currency</Label>
                 <p className="text-sm text-muted-foreground">
-                  All products will be priced in {formData.currency.split(" ")[0]}.
+                  All products will be priced in{" "}
+                  {formData.currency.split(" ")[0]}.
                 </p>
               </div>
               <Badge variant="outline">{formData.currency}</Badge>
@@ -157,11 +164,7 @@ export function SettingsTab({
           >
             Discard
           </Button>
-          <Button
-            className="gap-2"
-            onClick={handleSave}
-            disabled={!hasChanges}
-          >
+          <Button className="gap-2" onClick={handleSave} disabled={!hasChanges}>
             <Save className="h-4 w-4" /> Save Changes
           </Button>
         </div>
