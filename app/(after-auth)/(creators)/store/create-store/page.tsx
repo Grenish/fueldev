@@ -34,7 +34,7 @@ import { Streamdown } from "streamdown";
 import { Spinner } from "@/components/ui/spinner";
 import StorePage from "../components/store-page";
 
-type Step = "intro" | "details" | "policies" | "preview" | "loading";
+type Step = "intro" | "details" | "policies" | "preview";
 
 type PolicyKey = {
   refund: keyof typeof refundText;
@@ -68,14 +68,12 @@ const stepMeta: { id: Exclude<Step, "intro">; label: string }[] = [
   { id: "details", label: "Basics" },
   { id: "policies", label: "Policies" },
   { id: "preview", label: "Preview" },
-  { id: "loading", label: "Setting up" },
 ];
 
 const wizardSteps: Exclude<Step, "intro">[] = [
   "details",
   "policies",
   "preview",
-  "loading",
 ];
 
 type PolicyQuestion = {
@@ -214,7 +212,7 @@ export default function CreateStore() {
 
   return (
     <div className="min-h-full h-full w-full flex items-start justify-center px-4 py-10">
-      {/*<div className="w-full max-w-2xl space-y-8">
+      <div className="w-full max-w-2xl space-y-8">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             {stepMeta.map((meta, index) => {
@@ -473,8 +471,8 @@ export default function CreateStore() {
             </div>
           </section>
         )}
-      </div>*/}
-      <StorePage />
+      </div>
+      {/*<StorePage />*/}
     </div>
   );
 }
@@ -535,7 +533,7 @@ const ScreenOne = ({ onPrimaryAction }: ScreenOneProps) => {
               className="group border-0 shadow-none bg-transparent flex flex-col gap-4"
             >
               <CardContent className="p-0">
-                <div className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl border border-border/50 bg-secondary/20">
+                <div className="relative w-full aspect-4/3 overflow-hidden rounded-2xl border border-border/50 bg-secondary/20">
                   <Image
                     src={item.img}
                     alt={item.title}
