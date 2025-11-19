@@ -6,9 +6,17 @@ import {
   CheckCircle2,
   XCircle,
   MoreHorizontal,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export interface Order {
   id: string;
@@ -100,7 +108,12 @@ export function OrdersTab({
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-tight">Recent Orders</h2>
-        <Button variant="outline" size="sm" onClick={onExportClick}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onExportClick}
+          className={`${orders.length === 0 ? "hidden" : "block"}`}
+        >
           Export CSV
         </Button>
       </div>
@@ -141,7 +154,7 @@ export function OrdersTab({
               <Badge
                 variant="secondary"
                 className={`capitalize border-transparent ${getStatusStyles(
-                  order.status
+                  order.status,
                 )}`}
               >
                 {getStatusIcon(order.status)}
@@ -168,9 +181,17 @@ export function OrdersTab({
 
         {orders.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              No orders found
-            </p>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia>
+                  <Package className="text-muted-foreground" />
+                </EmptyMedia>
+                <EmptyTitle>Not Found</EmptyTitle>
+                <EmptyDescription>
+                  You haven&apos;t made any sales yet.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           </div>
         )}
       </div>
