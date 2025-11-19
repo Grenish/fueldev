@@ -1,9 +1,17 @@
 "use client";
 
 import React from "react";
-import { Plus, Percent, Copy } from "lucide-react";
+import { Plus, Percent, Copy, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export interface Discount {
   code: string;
@@ -62,29 +70,16 @@ export function DiscountsTab({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <h2 className="text-xl font-semibold tracking-tight">
-          Active Coupons
-        </h2>
-        <Button className="gap-2" onClick={onCreateDiscount}>
+        <h2 className="text-xl font-semibold tracking-tight">Active Coupons</h2>
+        <Button
+          className={`${discounts.length === 0 ? "hidden" : "block"}`}
+          onClick={onCreateDiscount}
+        >
           <Plus className="h-4 w-4" /> Create Coupon
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Create New Card */}
-        <button
-          onClick={onCreateDiscount}
-          className="flex flex-col items-center justify-center h-full min-h-[160px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/30 transition-all group"
-        >
-          <div className="rounded-full bg-background p-3 text-muted-foreground group-hover:text-primary shadow-sm border border-border transition-colors">
-            <Plus className="h-6 w-6" />
-          </div>
-          <span className="mt-3 font-medium text-sm text-muted-foreground">
-            Create new discount
-          </span>
-        </button>
-
-        {/* Discount Cards */}
         {discounts.map((discount, i) => (
           <div
             key={i}
@@ -106,9 +101,7 @@ export function DiscountsTab({
                 </div>
               </div>
               <Badge
-                variant={
-                  discount.status === "active" ? "default" : "secondary"
-                }
+                variant={discount.status === "active" ? "default" : "secondary"}
                 className="capitalize"
               >
                 {discount.status}
@@ -136,10 +129,20 @@ export function DiscountsTab({
 
         {discounts.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-            <Percent className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-            <p className="text-sm text-muted-foreground">
-              No discount coupons created yet
-            </p>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia>
+                  <Percent className="text-muted-foreground" />
+                </EmptyMedia>
+                <EmptyTitle>Not Discount</EmptyTitle>
+                <EmptyDescription>
+                  You haven&apos;t created any discount code yet.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button>Create Coupon</Button>
+              </EmptyContent>
+            </Empty>
           </div>
         )}
       </div>
