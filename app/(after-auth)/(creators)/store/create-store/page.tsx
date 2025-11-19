@@ -1,8 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { slugifyStoreName } from "@/lib/utils";
 import { Checkbox } from "@/components/animate-ui/components/radix/checkbox";
 import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc/react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -20,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@radix-ui/react-label";
-import { ArrowRight, Camera, Check, Store } from "lucide-react";
+import { ArrowRight, Camera, Check, Store, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { generateStorePolicy } from "@/docs/generate-policy";
 import {
@@ -31,8 +35,6 @@ import {
   supportText,
 } from "@/docs/policy-text-map";
 import { Streamdown } from "streamdown";
-import { Spinner } from "@/components/ui/spinner";
-import StorePage from "../components/store-page";
 
 type Step = "intro" | "details" | "policies" | "preview";
 
@@ -45,6 +47,16 @@ type PolicyKey = {
 };
 
 type PoliciesState = Partial<PolicyKey>;
+
+type CloudinarySignatureResponse = {
+  signature: string;
+  timestamp: number;
+  folder: string;
+  public_id: string;
+  upload_preset: string;
+  apiKey: string;
+  cloudName: string;
+};
 
 const items = [
   {
@@ -136,22 +148,37 @@ const policyQuestions: PolicyQuestion[] = [
 ];
 
 export default function CreateStore() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("intro");
   const [storeName, setStoreName] = useState("");
-  const [creatorName, setCreatorName] = useState("");
   const [storeDescription, setStoreDescription] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [policies, setPolicies] = useState<PoliciesState>({});
   const [emailPolicy, setEmailPolicy] = useState(false);
   const [hasConfirmedPolicy, setHasConfirmedPolicy] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const activeStep = (step === "intro" ? "details" : step) as Exclude<
-    Step,
-    "intro"
-  >;
+  const { data: session } = trpc.user.getSession.useQuery();
+  const utils = trpc.useUtils();
+  const creatorName = session?.user?.name || "";
+
+  const createStoreMutation = trpc.store.createStoreWithPolicy.useMutation();
+
+  const updateLogoMutation = trpc.store.updateStoreLogo.useMutation();
+
+  const { data: myStores, isLoading: isCheckingStores } =
+    trpc.store.getMyStores.useQuery(undefined, {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+    });
+
+  const hasExistingStore = Boolean(myStores?.length);
+
+  const activeStep = step === "intro" ? "details" : step;
   const currentStepIndex = wizardSteps.indexOf(activeStep);
 
-  const canContinueDetails = Boolean(storeName.trim() && creatorName.trim());
+  const canContinueDetails = Boolean(storeName.trim() && session?.user?.name);
   const isPolicyComplete = policyQuestions.every((q) =>
     Boolean(policies[q.id]),
   );
@@ -161,6 +188,127 @@ export default function CreateStore() {
     if (file) {
       const objectUrl = URL.createObjectURL(file);
       setLogoPreview(objectUrl);
+      setLogoFile(file);
+    }
+  };
+
+  const getCloudinarySignature = async (
+    storeId: string,
+  ): Promise<CloudinarySignatureResponse> => {
+    const response = await fetch("/api/cloudinary/sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folder: `fueldev/store/${storeId}/storeMetadata`,
+        public_id: "store-logo",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Unable to get Cloudinary signature");
+    }
+
+    return response.json();
+  };
+
+  const uploadLogoToCloudinary = async (storeId: string, file: File) => {
+    const signaturePayload = await getCloudinarySignature(storeId);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", signaturePayload.folder);
+    formData.append("public_id", signaturePayload.public_id);
+    formData.append("timestamp", signaturePayload.timestamp.toString());
+    formData.append("signature", signaturePayload.signature);
+    formData.append("upload_preset", signaturePayload.upload_preset);
+    formData.append("api_key", signaturePayload.apiKey);
+
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${signaturePayload.cloudName}/auto/upload`;
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Failed to upload logo to Cloudinary");
+    }
+
+    const uploadData = await uploadResponse.json();
+    return uploadData.secure_url as string;
+  };
+
+  const handleCreateStore = async () => {
+    if (isCreating) {
+      return;
+    }
+
+    if (!session?.user?.id) {
+      toast.error("You must be logged in to create a store");
+      return;
+    }
+
+    if (
+      !policies.refund ||
+      !policies.delivery ||
+      !policies.support ||
+      !policies.payment ||
+      !policies.buyer_info
+    ) {
+      toast.error("Please complete all policy selections");
+      return;
+    }
+
+    if (
+      !policyPreview ||
+      policyPreview.startsWith("Complete your store details")
+    ) {
+      toast.error("Please review your generated policy before continuing");
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      const store = await createStoreMutation.mutateAsync({
+        storeName,
+        storeDescription: storeDescription || undefined,
+        policies: {
+          refund: policies.refund,
+          delivery: policies.delivery,
+          support: policies.support,
+          payment: policies.payment,
+          buyer_info: policies.buyer_info,
+        },
+        finalPolicyText: policyPreview,
+        emailPolicy,
+      });
+
+      if (logoFile) {
+        try {
+          const logoUrl = await uploadLogoToCloudinary(store.id, logoFile);
+          await updateLogoMutation.mutateAsync({
+            storeId: store.id,
+            logoUrl,
+          });
+        } catch (logoError) {
+          console.error(logoError);
+          toast.error(
+            logoError instanceof Error
+              ? logoError.message
+              : "Unexpected logo upload error",
+          );
+        }
+      }
+
+      await utils.store.getMyStores.invalidate();
+      toast.success("Store created successfully!");
+      router.push(`/store/${slugifyStoreName(store.storeName)}`);
+    } catch (error) {
+      console.error("Error creating store:", error);
+      toast.error("Unable to create store. Please try again.");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -201,6 +349,22 @@ export default function CreateStore() {
       buyerInfo: policies.buyer_info,
     });
   }, [canContinueDetails, isPolicyComplete, policies, storeName, creatorName]);
+
+  if (isCheckingStores) {
+    return (
+      <div className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">
+          Checking your store status…
+        </p>
+      </div>
+    );
+  }
+
+  if (hasExistingStore && myStores?.[0]) {
+    router.push(`/store/${slugifyStoreName(myStores[0].storeName)}`);
+    return null;
+  }
 
   if (step === "intro") {
     return (
@@ -302,9 +466,9 @@ export default function CreateStore() {
                 <Input
                   id="creator-name"
                   value={creatorName}
-                  onChange={(e) => setCreatorName(e.target.value)}
                   placeholder="Your name"
                   className="h-12 rounded-xl"
+                  disabled
                 />
               </div>
 
@@ -454,6 +618,7 @@ export default function CreateStore() {
                 variant="ghost"
                 className="px-0 text-muted-foreground"
                 onClick={() => setStep("policies")}
+                disabled={isCreating}
               >
                 Back
               </Button>
@@ -462,17 +627,18 @@ export default function CreateStore() {
                 disabled={
                   !isPolicyComplete ||
                   !canContinueDetails ||
-                  !hasConfirmedPolicy
+                  !hasConfirmedPolicy ||
+                  isCreating
                 }
+                onClick={handleCreateStore}
               >
-                Create store
+                {isCreating ? "Creating..." : "Create store"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </section>
         )}
       </div>
-      {/*<StorePage />*/}
     </div>
   );
 }
@@ -504,7 +670,7 @@ const ScreenOne = ({ onPrimaryAction }: ScreenOneProps) => {
               className="min-w-[85%] snap-center border-0 shadow-none bg-transparent flex flex-col gap-4"
             >
               <CardContent className="p-0">
-                <div className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl border border-border/50 bg-secondary/20">
+                <div className="relative w-full aspect-4/3 overflow-hidden rounded-2xl border border-border/50 bg-secondary/20">
                   <Image
                     src={item.img}
                     alt={item.title}
