@@ -17,20 +17,20 @@ interface Product {
 
 interface ProductsTabProps {
   products?: Product[];
-  onCreateProduct?: (type: string) => void;
+  storeName: string;
   onProductClick?: (product: Product) => void;
   onFilterClick?: () => void;
 }
 
 export function ProductsTab({
   products,
-  onCreateProduct,
+  storeName,
   onProductClick,
   onFilterClick,
 }: ProductsTabProps) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <CreateNewSection onCreateProduct={onCreateProduct} />
+      <CreateNewSection storeName={storeName} />
       <InventorySection
         products={products}
         onProductClick={onProductClick}
