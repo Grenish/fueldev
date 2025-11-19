@@ -11,7 +11,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -30,6 +29,7 @@ model User {
   articleCommentReply ArticleCommentReply[]
   polls               Poll[]
   pollVotes           PollVote[]
+  creatorsStores      CreatorsStore[]
 
   @@unique([email])
   @@map("user")
@@ -224,6 +224,7 @@ model ArticleShare {
   @@map("article_share")
 }
 
+// TODO
 model Poll {
   id             String   @id @default(cuid())
   question       String
@@ -275,4 +276,70 @@ model PollVote {
   @@index([userId])
   @@index([createdAt])
   @@map("poll_vote")
+}
+
+// Implementing
+model CreatorsStore {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeName   String  @unique
+  storeLogo   String?
+  description String? @db.Text
+
+  ownerId   String
+  owner     User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerName String // snapshot of user's name at creation
+
+  products    StoreProduct[]
+  storePolicy StorePolicy? // one-to-one (optional until policy created)
+
+  @@map("creators_store")
+}
+
+model StoreProduct {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId String
+  store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  title       String
+  slug        String  @unique
+  description String? @db.Text
+  price       Int // price in paise for UPI consistency
+  type        String // "digital" or "physical"
+
+  images Json @default("[]")
+  files  Json @default("[]")
+  stock  Int? // null for digital items
+
+  published Boolean @default(false)
+
+  @@index([storeId])
+  @@map("store_product")
+}
+
+model StorePolicy {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refundPolicyChoice        String
+  deliveryMethodChoice      String
+  supportAvailabilityChoice String
+  paymentFinalityChoice     String
+  buyerInfoRequiredChoice   String
+
+  finalPolicyText String @db.Text
+
+  agreed   Boolean   @default(false)
+  agreedAt DateTime? // optional until user confirms
+
+  storeId String        @unique
+  store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("store_policy")
 }
