@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 interface Product {
   id: string;
@@ -32,17 +39,7 @@ interface InventorySectionProps {
   onFilterClick?: () => void;
 }
 
-const defaultProducts: Product[] = [
-  {
-    id: "1",
-    name: "Dark Mode UI Kit",
-    price: "$49.00",
-    sales: 24,
-    revenue: "$1,176.00",
-    type: "Digital",
-    isHighPerforming: true,
-  },
-];
+const defaultProducts: Product[] = [];
 
 export function InventorySection({
   products = defaultProducts,
@@ -173,10 +170,17 @@ export function InventorySection({
 
         {filteredProducts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Package className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-            <p className="text-sm text-muted-foreground">
-              No products found matching &quot;{searchQuery}&quot;
-            </p>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia>
+                  <Package className="text-muted-foreground" />
+                </EmptyMedia>
+                <EmptyTitle>Not Found</EmptyTitle>
+                <EmptyDescription>
+                  No products found matching &quot;{searchQuery}&quot;
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           </div>
         )}
       </div>
