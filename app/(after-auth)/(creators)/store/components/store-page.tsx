@@ -9,6 +9,7 @@ import { ProductsTab } from "./products-tab";
 import { OrdersTab, type Order } from "./orders-tab";
 import { DiscountsTab, type Discount } from "./discounts-tab";
 import { SettingsTab, type StoreSettings } from "./settings-tab";
+import { OverviewTab } from "./overview-tab";
 
 interface Product {
   id: string;
@@ -147,11 +148,13 @@ export default function StorePage({ storeSlug }: StorePageProps) {
             storeLogo={store?.storeLogo}
           />
 
-          <TabNavigation
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+          <div className="w-full md:w-auto">
+            <TabNavigation
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </div>
         </div>
 
         {activeTab === "Products" && (
@@ -162,6 +165,8 @@ export default function StorePage({ storeSlug }: StorePageProps) {
             onFilterClick={handleFilterClick}
           />
         )}
+
+        {activeTab === "Overview" && <OverviewTab />}
 
         {activeTab === "Orders" && (
           <OrdersTab
