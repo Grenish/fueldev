@@ -18,7 +18,7 @@ export function StoreHeader({
   storeLogo,
 }: StoreHeaderProps) {
   return (
-    <div className="mb-12 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+    <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
       <div className="flex flex-col gap-6 md:flex-row md:items-start">
         <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-border shadow-sm bg-card overflow-hidden">
           {storeLogo ? (
