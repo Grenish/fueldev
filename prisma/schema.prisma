@@ -241,6 +241,7 @@ model Poll {
   @@index([userID])
   @@index([isActive])
   @@index([createdAt])
+  @@map("poll")
 }
 
 model PollOption {
@@ -293,7 +294,8 @@ model CreatorsStore {
   ownerName String // snapshot of user's name at creation
 
   products    StoreProduct[]
-  storePolicy StorePolicy? // one-to-one (optional until policy created)
+  categories  ProductCategory[]
+  storePolicy StorePolicy?
 
   @@map("creators_store")
 }
@@ -306,20 +308,42 @@ model StoreProduct {
   storeId String
   store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
-  title       String
-  slug        String  @unique
-  description String? @db.Text
-  price       Int // price in paise for UPI consistency
-  type        String // "digital" or "physical"
+  name        String
+  coverArt    String?
+  description String  @db.Text
+  price       Int
 
-  images Json @default("[]")
-  files  Json @default("[]")
-  stock  Int? // null for digital items
+  categoryId String
+  category   ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  item String
+
+  quantity      Int     @default(0)
+  question      String?
+  discount      Int     @default(0)
+  customMessage String?
 
   published Boolean @default(false)
 
   @@index([storeId])
+  @@index([categoryId])
+  @@index([published])
   @@map("store_product")
+}
+
+model ProductCategory {
+  id      String        @id @default(cuid())
+  storeId String
+  store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  name String
+  slug String? @unique
+
+  products StoreProduct[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@map("product_category")
 }
 
 model StorePolicy {
@@ -336,7 +360,7 @@ model StorePolicy {
   finalPolicyText String @db.Text
 
   agreed   Boolean   @default(false)
-  agreedAt DateTime? // optional until user confirms
+  agreedAt DateTime?
 
   storeId String        @unique
   store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
