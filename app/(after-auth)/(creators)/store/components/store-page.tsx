@@ -8,7 +8,7 @@ import { TabNavigation } from "./tab-navigation";
 import { ProductsTab } from "./products-tab";
 import { OrdersTab, type Order } from "./orders-tab";
 import { DiscountsTab, type Discount } from "./discounts-tab";
-import { SettingsTab, type StoreSettings } from "./settings-tab";
+import { SettingsTab } from "./settings-tab";
 import { OverviewTab } from "./overview-tab";
 
 interface Product {
@@ -77,16 +77,6 @@ export default function StorePage({ storeSlug }: StorePageProps) {
   // Mock discounts data
   const discounts: Discount[] = [];
 
-  // Mock settings data
-  const settings: StoreSettings = {
-    storeName: "Acme Store",
-    storeUrl: "acmestore",
-    description:
-      "Welcome to Acme Store! We offer a curated selection of digital assets and physical goods, designed to empower creators and innovators.",
-    currency: "USD ($)",
-    maintenanceMode: false,
-  };
-
   const handleProductClick = () => {
     // TODO: Implement product details navigation
   };
@@ -113,24 +103,6 @@ export default function StorePage({ storeSlug }: StorePageProps) {
 
   const handleDiscountClick = () => {
     // TODO: Implement discount details/editing
-  };
-
-  const handleSaveSettings = () => {
-    // TODO: Implement settings save
-  };
-
-  const handleDiscardSettings = () => {
-    // TODO: Implement discard changes
-  };
-
-  const handleDeleteStore = () => {
-    if (
-      confirm(
-        "Are you sure you want to delete your store? This action cannot be undone.",
-      )
-    ) {
-      // TODO: Implement store deletion
-    }
   };
 
   return (
@@ -185,14 +157,7 @@ export default function StorePage({ storeSlug }: StorePageProps) {
           />
         )}
 
-        {activeTab === "Settings" && (
-          <SettingsTab
-            settings={settings}
-            onSave={handleSaveSettings}
-            onDiscard={handleDiscardSettings}
-            onDelete={handleDeleteStore}
-          />
-        )}
+        {activeTab === "Settings" && <SettingsTab />}
       </div>
     </div>
   );
