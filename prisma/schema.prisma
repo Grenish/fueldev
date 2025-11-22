@@ -79,6 +79,7 @@ model Verification {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt
 
+  @@unique([identifier, value])
   @@index([identifier])
   @@map("verification")
 }
