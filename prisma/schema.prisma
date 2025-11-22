@@ -48,6 +48,7 @@ model Session {
 
   @@unique([token])
   @@map("session")
+  @@index([userId])
 }
 
 model Account {
@@ -67,6 +68,7 @@ model Account {
   updatedAt             DateTime  @updatedAt
 
   @@map("account")
+  @@index([userId])
 }
 
 model Verification {
@@ -78,6 +80,7 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("verification")
+  @@index([identifier])
 }
 
 model UserLinks {
@@ -225,6 +228,7 @@ model ArticleShare {
 }
 
 // TODO
+
 model Poll {
   id             String   @id @default(cuid())
   question       String
@@ -280,6 +284,7 @@ model PollVote {
 }
 
 // Implementing
+
 model CreatorsStore {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())

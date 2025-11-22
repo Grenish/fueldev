@@ -47,6 +47,14 @@ import {
 } from "lucide-react";
 import { Streamdown } from "streamdown";
 
+export type StoreSettings = {
+  storeName: string;
+  description: string;
+  storeUrl: string;
+  supportEmail: string;
+  contactEmail: string;
+};
+
 export function SettingsTab() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 mx-auto">
