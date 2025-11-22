@@ -21,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
@@ -30,7 +29,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  AlertTriangle,
   Check,
   Download,
   Globe,
