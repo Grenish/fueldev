@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { defaultStoreAvatars, pickRandom } from "@/util/default";
 
 export const storeRouter = router({
   createStoreWithPolicy: protectedProcedure
@@ -33,12 +34,16 @@ export const storeRouter = router({
         });
       }
 
+      // Assign a random default store avatar
+      const defaultAvatar = pickRandom(defaultStoreAvatars);
+
       const store = await ctx.prisma.creatorsStore.create({
         data: {
           storeName,
           description: storeDescription,
           ownerId: ctx.user.id,
           ownerName: ctx.user.name,
+          storeLogo: defaultAvatar.url,
         },
       });
 
