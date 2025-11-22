@@ -64,9 +64,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Send verification email using better-auth email verification
-    // This should be handled by better-auth's email verification system
-    // For now, we'll return success and let the frontend trigger the verification flow
+    // Send verification email using better-auth email verification
+    await auth.api.sendVerificationEmail({
+      body: {
+        email,
+      },
+      headers: await headers(),
+    });
 
     return NextResponse.json({
       success: true,

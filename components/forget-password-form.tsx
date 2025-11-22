@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { forgetPassword } from "@/lib/auth-client";
+import { requestPasswordReset } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +33,7 @@ export function ForgotPasswordForm({
     const email = formData.get("email") as string;
 
     try {
-      const result = await forgetPassword({
+      const result = await requestPasswordReset({
         email,
         redirectTo: "/auth/forgot-password/reset",
       });

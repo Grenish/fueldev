@@ -294,7 +294,9 @@ export default function CreatorPage() {
                         <Checkbox
                           id="private"
                           checked={isPrivate}
-                          onCheckedChange={setIsPrivate}
+                          onCheckedChange={(checked: boolean | "indeterminate") =>
+                            setIsPrivate(checked === true)
+                          }
                           className="mt-0.5"
                         />
                         <div className="flex-1 space-y-0.5">
@@ -319,7 +321,9 @@ export default function CreatorPage() {
                         <Checkbox
                           id="monthly"
                           checked={isMonthly}
-                          onCheckedChange={setIsMonthly}
+                          onCheckedChange={(checked: boolean | "indeterminate") =>
+                            setIsMonthly(checked === true)
+                          }
                           className="mt-0.5"
                         />
                         <div className="flex-1 space-y-0.5">
