@@ -6,6 +6,7 @@ import ResetPasswordEmail from "@/emails/reset-password-email";
 import VerificationEmail from "@/emails/verification-email";
 import SecurityAlertEmail from "@/emails/security-alert-email";
 import AccountDeletedEmail from "@/emails/account-deleted-email";
+import { defaultAvatars, pickRandom } from "@/util/default";
 import type React from "react";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -262,6 +263,13 @@ export const auth = betterAuth({
     },
   },
   user: {
+    additionalFields: {
+      image: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+    },
     deleteUser: {
       enabled: true,
       beforeDelete: async (user) => {
@@ -452,6 +460,29 @@ export const auth = betterAuth({
       },
     },
     user: {
+      create: {
+        after: async (user) => {
+          try {
+            // Assign a random default avatar to the new user
+            const randomAvatar = pickRandom(defaultAvatars);
+
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { image: randomAvatar.url },
+            });
+
+            AuthLogger.info("User Created", "Assigned random default avatar", {
+              userId: user.id,
+              avatarId: randomAvatar.id,
+            });
+          } catch (error) {
+            // Log but don't block user creation
+            AuthLogger.error("User Create Hook Failed", error, {
+              userId: user.id,
+            });
+          }
+        },
+      },
       update: {
         after: async (user) => {
           try {
