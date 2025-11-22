@@ -199,6 +199,9 @@ export const auth = betterAuth({
     provider: "postgresql",
     usePlural: false,
   }),
+  experimental: {
+    joins: true,
+  },
   emailAndPassword: {
     enabled: true,
     async sendResetPassword({ user, url }) {
