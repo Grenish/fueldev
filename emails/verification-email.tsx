@@ -68,8 +68,8 @@ const EmailVerificationOTP = ({ verifyUrl }: EmailVerificationProps) => {
               </Section>
 
               <Text className="text-[#252117] text-[14px] leading-[20px] mb-[16px]">
-                If the button doesn't work, copy and paste this link into your
-                browser:
+                If the button doesn&apos;t work, copy and paste this link into
+                your browser:
               </Text>
 
               <Text className="text-[#d9a440] text-[14px] leading-[20px] mb-[24px] break-all">
@@ -85,15 +85,15 @@ const EmailVerificationOTP = ({ verifyUrl }: EmailVerificationProps) => {
               </Text>
 
               <Text className="text-[#252117] text-[14px] leading-[20px] mb-[16px]">
-                <strong>Didn't sign up for FuelDev?</strong> If you didn't
-                create an account with us, you can safely ignore this email. No
-                account will be created without completing the verification
-                process.
+                <strong>Didn&apos;t sign up for FuelDev?</strong> If you
+                didn&apos;t create an account with us, you can safely ignore
+                this email. No account will be created without completing the
+                verification process.
               </Text>
 
               <Text className="text-[#252117] text-[14px] leading-[20px]">
-                Once verified, you'll be able to start receiving support from
-                your audience and connect with the vibrant Indian creator
+                Once verified, you&apos;ll be able to start receiving support
+                from your audience and connect with the vibrant Indian creator
                 community on FuelDev.
               </Text>
             </Section>
@@ -109,11 +109,11 @@ const EmailVerificationOTP = ({ verifyUrl }: EmailVerificationProps) => {
               </Text>
 
               <Text className="text-[#252117] text-[14px] leading-[20px] mb-[8px]">
-                • Check that the link hasn't expired
+                • Check that the link hasn&apos;t expired
               </Text>
 
               <Text className="text-[#252117] text-[14px] leading-[20px]">
-                • If you're still having trouble, visit{" "}
+                • If you&apos;re still having trouble, visit{" "}
                 <Link
                   href="https://fueldev.vercel.app"
                   className="text-[#d9a440] no-underline"
