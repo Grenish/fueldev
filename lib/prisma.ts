@@ -13,7 +13,6 @@ if (!connectionString) {
 
 const adapter = new PrismaPg({ connectionString });
 
-// Configure Prisma with the official PostgreSQL adapter
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
