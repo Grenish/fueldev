@@ -35,7 +35,6 @@ import {
   supportText,
 } from "@/docs/policy-text-map";
 import { Streamdown } from "streamdown";
-import { defaultStoreAvatars, pickRandom } from "@/util/default";
 
 type Step = "intro" | "details" | "policies" | "preview";
 
