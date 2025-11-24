@@ -66,9 +66,9 @@ function pickRandom<T>(list: T[]): T {
 }
 
 function generateCouponCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQESTUVWXYZ1234567890";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-  // Randomnly choosing from 8 - 9 digits
+  // Randomly choosing from 8 - 9 characters
   const len = Math.floor(Math.random() * 2) + 8;
 
   let res = "";
