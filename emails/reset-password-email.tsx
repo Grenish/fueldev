@@ -68,8 +68,8 @@ const PasswordResetEmail = ({ resetUrl }: PasswordResetEmailProps) => {
               </Section>
 
               <Text className="text-[#252117] text-[14px] leading-[20px] mb-[16px]">
-                If the button doesn't work, copy and paste this link into your
-                browser:
+                If the button doesn&apos;t work, copy and paste this link into
+                your browser:
               </Text>
 
               <Text className="text-[#d9a440] text-[14px] leading-[20px] mb-[24px] break-all">
@@ -79,9 +79,9 @@ const PasswordResetEmail = ({ resetUrl }: PasswordResetEmailProps) => {
               </Text>
 
               <Text className="text-[#252117] text-[14px] leading-[20px] mb-[16px]">
-                <strong>Didn't request this?</strong> If you didn't ask to reset
-                your password, you can safely ignore this email. Your password
-                will remain unchanged.
+                <strong>Didn&apos;t request this?</strong> If you didn&apos;t
+                ask to reset your password, you can safely ignore this email.
+                Your password will remain unchanged.
               </Text>
 
               <Text className="text-[#252117] text-[14px] leading-[20px]">

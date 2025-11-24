@@ -59,17 +59,17 @@ const AccountDeletedEmail = ({
               </Text>
 
               <Text className="text-[#252117] text-[16px] leading-[24px] mb-[24px]">
-                We're sad to see you go, but we respect your decision to delete
-                your FuelDev account. Your journey with us has come to an end,
-                and we want to take a moment to thank you for being part of our
-                creator community.
+                We&apos;re sad to see you go, but we respect your decision to
+                delete your FuelDev account. Your journey with us has come to an
+                end, and we want to take a moment to thank you for being part of
+                our creator community.
               </Text>
 
               <Text className="text-[#252117] text-[16px] leading-[24px] mb-[32px]">
                 Every creator who joins FuelDev contributes to building a
                 stronger, more supportive ecosystem for Indian developers and
-                artists. Your presence made a difference, and we're grateful for
-                the time you spent with us.
+                artists. Your presence made a difference, and we&apos;re
+                grateful for the time you spent with us.
               </Text>
 
               {/* Account Summary */}
@@ -124,16 +124,16 @@ const AccountDeletedEmail = ({
                 </Text>
 
                 <Text className="text-[#252117] text-[14px] leading-[20px] mb-[20px]">
-                  While your current account is gone, you're always welcome back
-                  to the FuelDev community. If you ever decide to return, you
-                  can create a new account and start fresh with all the tools
-                  and support we offer to creators.
+                  While your current account is gone, you&apos;re always welcome
+                  back to the FuelDev community. If you ever decide to return,
+                  you can create a new account and start fresh with all the
+                  tools and support we offer to creators.
                 </Text>
 
                 <Text className="text-[#252117] text-[14px] leading-[20px] mb-[24px]">
-                  The Indian creator ecosystem continues to grow, and there's
-                  always room for passionate developers, artists, and dreamers
-                  like you.
+                  The Indian creator ecosystem continues to grow, and
+                  there&apos;s always room for passionate developers, artists,
+                  and dreamers like you.
                 </Text>
 
                 <Section className="text-center">

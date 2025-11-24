@@ -1,13 +1,22 @@
 import { PrismaClient } from "./generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = global as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Configure Prisma with optimized settings for Neon serverless
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is not set.");
+}
+
+const adapter = new PrismaPg({ connectionString });
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 

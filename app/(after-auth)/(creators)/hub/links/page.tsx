@@ -23,6 +23,7 @@ import { AnyBlock, SavedSocial } from "./types";
 import { trpc } from "@/lib/trpc/react";
 import { toast } from "sonner";
 import { socialsMap } from "./constants";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function CreatorLinks() {
   // Fetch user links data
@@ -283,7 +284,7 @@ export default function CreatorLinks() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="size-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+          <Spinner />
           <p className="text-sm text-muted-foreground">
             Loading your links page...
           </p>
@@ -305,7 +306,7 @@ export default function CreatorLinks() {
           >
             {isSaving ? (
               <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Spinner />
                 Saving...
               </>
             ) : (

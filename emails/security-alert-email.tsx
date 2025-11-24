@@ -53,7 +53,7 @@ const SecurityAlertEmail = ({
   const getAlertMessage = () => {
     switch (alertType) {
       case "login":
-        return `We detected a new login to your FuelDev account from a device or location we haven't seen before.`;
+        return `We detected a new login to your FuelDev account from a device or location we haven&apos;t seen before.`;
       case "password_change":
         return `Your FuelDev account password was successfully changed.`;
       case "email_change":
@@ -61,7 +61,7 @@ const SecurityAlertEmail = ({
       case "suspicious_activity":
         return `We detected unusual activity on your FuelDev account that may indicate unauthorized access attempts.`;
       default:
-        return `We're alerting you about recent activity on your FuelDev account.`;
+        return `We&apos;re alerting you about recent activity on your FuelDev account.`;
     }
   };
 
@@ -157,7 +157,7 @@ const SecurityAlertEmail = ({
                 </Text>
 
                 <Text className="text-[#252117] text-[14px] leading-[20px] mb-[24px]">
-                  <strong>If this wasn't you:</strong> Your account may be
+                  <strong>If this wasn&apos;t you:</strong> Your account may be
                   compromised. Please take immediate action to secure your
                   creator account and protect your supporters.
                 </Text>

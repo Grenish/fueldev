@@ -6,6 +6,7 @@ import ResetPasswordEmail from "@/emails/reset-password-email";
 import VerificationEmail from "@/emails/verification-email";
 import SecurityAlertEmail from "@/emails/security-alert-email";
 import AccountDeletedEmail from "@/emails/account-deleted-email";
+import { defaultAvatars, pickRandom } from "@/util/default";
 import type React from "react";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -199,6 +200,9 @@ export const auth = betterAuth({
     provider: "postgresql",
     usePlural: false,
   }),
+  experimental: {
+    joins: true,
+  },
   emailAndPassword: {
     enabled: true,
     async sendResetPassword({ user, url }) {
@@ -259,6 +263,13 @@ export const auth = betterAuth({
     },
   },
   user: {
+    additionalFields: {
+      image: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+    },
     deleteUser: {
       enabled: true,
       beforeDelete: async (user) => {
@@ -449,6 +460,46 @@ export const auth = betterAuth({
       },
     },
     user: {
+      create: {
+        after: async (user) => {
+          try {
+            // Get the current maximum joinIndex and increment by 1
+            const maxJoinIndex = await prisma.user.aggregate({
+              _max: {
+                joinIndex: true,
+              },
+            });
+
+            const nextJoinIndex = (maxJoinIndex._max.joinIndex ?? 0) + 1;
+
+            // Assign a random default avatar and joinIndex to the new user
+            const randomAvatar = pickRandom(defaultAvatars);
+
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                image: randomAvatar.url,
+                joinIndex: nextJoinIndex,
+              },
+            });
+
+            AuthLogger.info(
+              "User Created",
+              "Assigned random default avatar and joinIndex",
+              {
+                userId: user.id,
+                avatarId: randomAvatar.id,
+                joinIndex: nextJoinIndex,
+              },
+            );
+          } catch (error) {
+            // Log but don't block user creation
+            AuthLogger.error("User Create Hook Failed", error, {
+              userId: user.id,
+            });
+          }
+        },
+      },
       update: {
         after: async (user) => {
           try {

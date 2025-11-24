@@ -154,7 +154,6 @@ export default function ProtectedHomePage() {
     },
   ];
 
-  // Show loading state
   if (isPending) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -163,7 +162,6 @@ export default function ProtectedHomePage() {
     );
   }
 
-  // If no user data
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -180,7 +178,6 @@ export default function ProtectedHomePage() {
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Bar */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -212,14 +209,15 @@ export default function ProtectedHomePage() {
           </Button>
         </div>
 
-        {/* Bento Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {/* Profile Card - Spans 2 columns on desktop */}
           <div className="lg:col-span-2 bg-card border rounded-xl p-6">
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">
                 <Avatar className="size-16 ring-4 ring-background">
-                  <AvatarImage src={user.image || ""} alt={user.name} />
+                  <AvatarImage
+                    src={user.image || "/avatars/default.jpg"}
+                    alt={user.name}
+                  />
                   <AvatarFallback className="text-lg font-semibold">
                     {getInitials(user.name)}
                   </AvatarFallback>
@@ -272,7 +270,6 @@ export default function ProtectedHomePage() {
             </div>
           </div>
 
-          {/* Earnings Overview - Spans 2 columns on desktop */}
           <div className="lg:col-span-2 bg-card border rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -313,7 +310,6 @@ export default function ProtectedHomePage() {
             </div>
           </div>
 
-          {/* Stats Cards - Each takes 1 column */}
           {stats.map((stat) => (
             <div
               key={stat.label}
@@ -331,7 +327,6 @@ export default function ProtectedHomePage() {
             </div>
           ))}
 
-          {/* Quick Actions - Spans full width */}
           <div className="lg:col-span-4 bg-card border rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold">Quick Actions</h3>
@@ -362,7 +357,6 @@ export default function ProtectedHomePage() {
             </div>
           </div>
 
-          {/* Recent Transactions - Spans 3 columns on desktop */}
           <div className="lg:col-span-3 bg-card border rounded-xl overflow-hidden">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
@@ -375,7 +369,6 @@ export default function ProtectedHomePage() {
             </div>
 
             <div className="divide-y">
-              {/* Sample Transaction */}
               <div className="p-6 hover:bg-muted/30 transition-colors group">
                 <div className="flex items-center gap-4">
                   <Avatar className="size-10">
@@ -424,7 +417,6 @@ export default function ProtectedHomePage() {
                 </div>
               </div>
 
-              {/* Empty State */}
               <div className="p-12">
                 <Empty>
                   <EmptyHeader>
@@ -441,7 +433,6 @@ export default function ProtectedHomePage() {
             </div>
           </div>
 
-          {/* Getting Started - Spans 1 column on desktop (sidebar) */}
           <div className="lg:col-span-1 bg-card border rounded-xl p-6">
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-2">Getting Started</h3>

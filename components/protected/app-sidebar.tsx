@@ -30,82 +30,8 @@ import {
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 import Link from "next/link";
-import { Badge } from "../ui/badge";
-
-// This is sample data.
-const data = {
-  navMain: [
-    {
-      title: "Creator Hub",
-      url: "#",
-      icon: HeartHandshake,
-      isActive: true,
-      items: [
-        {
-          title: "Links",
-          url: "/hub/links",
-        },
-        {
-          title: "Page",
-          url: "/hub/creator-page",
-        },
-        {
-          title: "Posts",
-          url: "/hub/posts",
-        },
-      ],
-    },
-    {
-      title: "Audience",
-      url: "#",
-      icon: Users,
-      items: [
-        {
-          title: "Overview",
-          url: "#",
-        },
-        {
-          title: "Members",
-          url: "#",
-        },
-        {
-          title: "Insights",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Store",
-      url: "#",
-      icon: Store,
-      items: [
-        {
-          title: "Create New (0/1)",
-          url: "/store/create-store",
-        },
-      ],
-    },
-    {
-      title: "Earnings",
-      url: "#",
-      icon: Wallet,
-      items: [
-        {
-          title: "Overview",
-          url: "#",
-        },
-        {
-          title: "Withdraw Funds",
-          url: "#",
-        },
-        {
-          title: "Transactions",
-          url: "#",
-        },
-      ],
-    },
-  ],
-};
+import { trpc } from "@/lib/trpc/react";
+import { slugifyStoreName } from "@/lib/utils";
 
 export function AppSidebar({
   user,
@@ -119,12 +45,95 @@ export function AppSidebar({
   };
 }) {
   const pathname = usePathname();
+  const { data: myStores } = trpc.store.getMyStores.useQuery();
 
   // Prepare user data for NavUser component
   const userData = {
     name: user.name,
     email: user.email,
     avatar: user.image || "/avatars/default.jpg",
+  };
+
+  // Prepare navigation data based on store status
+  const data = {
+    navMain: [
+      {
+        title: "Creator Hub",
+        url: "#",
+        icon: HeartHandshake,
+        isActive: true,
+        items: [
+          {
+            title: "Links",
+            url: "/hub/links",
+          },
+          {
+            title: "Page",
+            url: "/hub/creator-page",
+          },
+          {
+            title: "Posts",
+            url: "/hub/posts",
+          },
+        ],
+      },
+      {
+        title: "Audience",
+        url: "#",
+        icon: Users,
+        items: [
+          {
+            title: "Overview",
+            url: "#",
+          },
+          {
+            title: "Members",
+            url: "#",
+          },
+          {
+            title: "Insights",
+            url: "#",
+          },
+        ],
+      },
+      {
+        title: "Store",
+        url: "#",
+        icon: Store,
+        items: myStores?.[0]
+          ? [
+              {
+                title: myStores[0].storeName,
+                url: `/store/${slugifyStoreName(myStores[0].storeName)}`,
+              },
+            ]
+          : [
+              {
+                title: "Create New (0/1)",
+                url: "/store/create-store",
+              },
+            ],
+      },
+      {
+        title: "Earnings",
+        url: "#",
+        icon: Wallet,
+        items: [
+          {
+            title: "Overview",
+            url: "#",
+          },
+          {
+            title: "Withdraw Funds",
+            url: "#",
+          },
+          {
+            title: "Transactions",
+            url: "#",
+          },
+        ],
+      },
+    ],
   };
 
   return (

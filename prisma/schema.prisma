@@ -11,13 +11,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
   id                  String                @id
   name                String
   email               String
+  joinIndex           Int                   @unique @default(0)
   emailVerified       Boolean               @default(false)
   image               String?
   createdAt           DateTime              @default(now())
@@ -30,6 +30,7 @@ model User {
   articleCommentReply ArticleCommentReply[]
   polls               Poll[]
   pollVotes           PollVote[]
+  creatorsStores      CreatorsStore[]
 
   @@unique([email])
   @@map("user")
@@ -47,6 +48,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
+  @@index([userId])
   @@map("session")
 }
 
@@ -66,6 +68,7 @@ model Account {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  @@index([userId])
   @@map("account")
 }
 
@@ -77,6 +80,8 @@ model Verification {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt
 
+  @@unique([identifier, value])
+  @@index([identifier])
   @@map("verification")
 }
 
@@ -224,6 +229,8 @@ model ArticleShare {
   @@map("article_share")
 }
 
+// TODO
+
 model Poll {
   id             String   @id @default(cuid())
   question       String
@@ -240,6 +247,7 @@ model Poll {
   @@index([userID])
   @@index([isActive])
   @@index([createdAt])
+  @@map("poll")
 }
 
 model PollOption {
@@ -275,4 +283,126 @@ model PollVote {
   @@index([userId])
   @@index([createdAt])
   @@map("poll_vote")
+}
+
+// Implementing
+
+model CreatorsStore {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeName   String  @unique
+  storeLogo   String?
+  description String? @db.Text
+
+  ownerId   String
+  owner     User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerName String
+
+  products    StoreProduct[]
+  categories  ProductCategory[]
+  storePolicy StorePolicy?
+  couponCode  CouponCode[]
+
+  @@map("creators_store")
+}
+
+model StoreProduct {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId String
+  store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  name        String
+  coverArt    String?
+  description String  @db.Text
+  price       Int
+
+  categoryId String
+  category   ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  item String // E2E Encrypted item
+
+  quantity      Int     @default(0)
+  question      String?
+  discount      Int     @default(0)
+  customMessage String?
+
+  published Boolean @default(false)
+
+  @@index([storeId])
+  @@index([categoryId])
+  @@index([published])
+  @@map("store_product")
+}
+
+model ProductCategory {
+  id      String        @id @default(cuid())
+  storeId String
+  store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  name String
+  slug String? @unique
+
+  products StoreProduct[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@map("product_category")
+}
+
+model StorePolicy {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refundPolicyChoice        String
+  deliveryMethodChoice      String
+  supportAvailabilityChoice String
+  paymentFinalityChoice     String
+  buyerInfoRequiredChoice   String
+
+  finalPolicyText String @db.Text
+
+  agreed   Boolean   @default(false)
+  agreedAt DateTime?
+
+  storeId String        @unique
+  store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("store_policy")
+}
+
+enum DiscountType {
+  fixed
+  percent
+}
+
+enum DiscountOn {
+  all
+  category
+}
+
+model CouponCode {
+  id     String @id @default(cuid())
+  serial String @unique
+
+  storeId String
+  store   CreatorsStore @relation(fields: [storeId], references: [id])
+
+  name               String
+  couponCode         String
+  discountType       DiscountType @default(fixed)
+  discountValue      Int
+  discountOn         DiscountOn   @default(all)
+  discountOnCategory String?
+
+  limit  Int?
+  expiry DateTime?
+
+  @@index([serial])
+  @@map("coupon-code")
 }

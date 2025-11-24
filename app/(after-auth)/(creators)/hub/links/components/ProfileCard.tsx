@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Pencil, Check, Loader2, AlertCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc/react";
 import { toast } from "sonner";
@@ -202,11 +206,10 @@ export function ProfileCard({
                   </>
                 ) : (
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        @
-                      </span>
-                      <Input
+                    {/* username input */}
+                    <InputGroup className="w-48 h-8">
+                      <InputGroupAddon align="inline-start">@</InputGroupAddon>
+                      <InputGroupInput
                         value={
                           handleInput.startsWith("@")
                             ? handleInput.slice(1)
@@ -216,11 +219,10 @@ export function ProfileCard({
                           const value = e.target.value.replace(/^@/, "");
                           setHandleInput(value);
                         }}
-                        className="pl-7 pr-10 h-8 w-48"
                         placeholder="username"
                         autoFocus
                       />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <InputGroupAddon align="inline-end">
                         {isCheckingHandle ? (
                           <Loader2 className="size-4 animate-spin text-muted-foreground" />
                         ) : isHandleAvailable === true ? (
@@ -228,8 +230,8 @@ export function ProfileCard({
                         ) : isHandleAvailable === false ? (
                           <AlertCircle className="size-4 text-destructive" />
                         ) : null}
-                      </div>
-                    </div>
+                      </InputGroupAddon>
+                    </InputGroup>
                     <Button
                       size="icon"
                       variant="ghost"
