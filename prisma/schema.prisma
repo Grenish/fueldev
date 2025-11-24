@@ -17,6 +17,7 @@ model User {
   id                  String                @id
   name                String
   email               String
+  joinIndex           Int                   @unique @default(0)
   emailVerified       Boolean               @default(false)
   image               String?
   createdAt           DateTime              @default(now())
@@ -297,11 +298,12 @@ model CreatorsStore {
 
   ownerId   String
   owner     User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerName String // snapshot of user's name at creation
+  ownerName String
 
   products    StoreProduct[]
   categories  ProductCategory[]
   storePolicy StorePolicy?
+  couponCode  CouponCode[]
 
   @@map("creators_store")
 }
@@ -322,7 +324,7 @@ model StoreProduct {
   categoryId String
   category   ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  item String
+  item String // E2E Encrypted item
 
   quantity      Int     @default(0)
   question      String?
@@ -372,4 +374,35 @@ model StorePolicy {
   store   CreatorsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@map("store_policy")
+}
+
+enum DiscountType {
+  fixed
+  percent
+}
+
+enum DiscountOn {
+  all
+  category
+}
+
+model CouponCode {
+  id     String @id @default(cuid())
+  serial String @unique
+
+  storeId String
+  store   CreatorsStore @relation(fields: [storeId], references: [id])
+
+  name               String
+  couponCode         String
+  discountType       DiscountType @default(fixed)
+  discountValue      Int
+  discountOn         DiscountOn   @default(all)
+  discountOnCategory String?
+
+  limit  Int?
+  expiry DateTime?
+
+  @@index([serial])
+  @@map("coupon-code")
 }
