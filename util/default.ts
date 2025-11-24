@@ -65,4 +65,17 @@ function pickRandom<T>(list: T[]): T {
   return list[i];
 }
 
-export { defaultAvatars, defaultStoreAvatars, pickRandom };
+function generateCouponCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQESTUVWXYZ1234567890";
+
+  // Randomnly choosing from 8 - 9 digits
+  const len = Math.floor(Math.random() * 2) + 8;
+
+  let res = "";
+  for (let i = 0; i < len; i++) {
+    res += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return res;
+}
+
+export { defaultAvatars, defaultStoreAvatars, pickRandom, generateCouponCode };
