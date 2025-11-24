@@ -463,18 +463,35 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           try {
-            // Assign a random default avatar to the new user
+            // Get the current maximum joinIndex and increment by 1
+            const maxJoinIndex = await prisma.user.aggregate({
+              _max: {
+                joinIndex: true,
+              },
+            });
+
+            const nextJoinIndex = (maxJoinIndex._max.joinIndex ?? 0) + 1;
+
+            // Assign a random default avatar and joinIndex to the new user
             const randomAvatar = pickRandom(defaultAvatars);
 
             await prisma.user.update({
               where: { id: user.id },
-              data: { image: randomAvatar.url },
+              data: {
+                image: randomAvatar.url,
+                joinIndex: nextJoinIndex,
+              },
             });
 
-            AuthLogger.info("User Created", "Assigned random default avatar", {
-              userId: user.id,
-              avatarId: randomAvatar.id,
-            });
+            AuthLogger.info(
+              "User Created",
+              "Assigned random default avatar and joinIndex",
+              {
+                userId: user.id,
+                avatarId: randomAvatar.id,
+                joinIndex: nextJoinIndex,
+              },
+            );
           } catch (error) {
             // Log but don't block user creation
             AuthLogger.error("User Create Hook Failed", error, {
