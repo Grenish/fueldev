@@ -3,11 +3,20 @@
 import React, { useState } from "react";
 import { trpc } from "@/lib/trpc/react";
 import { slugifyStoreName } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Store } from "lucide-react";
 import { StoreHeader } from "./store-header";
 import { TabNavigation } from "./tab-navigation";
 import { ProductsTab } from "./products-tab";
 import { OrdersTab, type Order } from "./orders-tab";
-import { DiscountsTab, type Discount } from "./discounts-tab";
+import { DiscountsTab } from "./discounts-tab";
 import { SettingsTab } from "./settings-tab";
 import { OverviewTab } from "./overview-tab";
 
@@ -33,7 +42,11 @@ export default function StorePage({ storeSlug }: StorePageProps) {
   const tabs = ["Products", "Overview", "Orders", "Discounts", "Settings"];
 
   // Fetch all stores to match by slug
-  const { data: myStores, isLoading } = trpc.store.getMyStores.useQuery();
+  const {
+    data: myStores,
+    isLoading,
+    isRefetching,
+  } = trpc.store.getMyStores.useQuery();
 
   // Find the store that matches the slug
   const store = React.useMemo(() => {
@@ -45,11 +58,11 @@ export default function StorePage({ storeSlug }: StorePageProps) {
     return matchedStore;
   }, [storeSlug, myStores]);
 
-  if (isLoading) {
+  if (isLoading || (!store && isRefetching)) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center">
+      <div className="min-h-full w-full flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <Spinner className="size-6" />
           <p className="text-sm text-muted-foreground">Loading your store...</p>
         </div>
       </div>
@@ -58,12 +71,19 @@ export default function StorePage({ storeSlug }: StorePageProps) {
 
   if (!store) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center gap-3 text-center">
-        <p className="text-lg font-semibold">Store not found</p>
-        <p className="text-sm text-muted-foreground">
-          We couldn&apos;t find a store linked to this URL. Create one to get
-          started.
-        </p>
+      <div className="min-h-full w-full flex items-center justify-center">
+        <Empty>
+          <EmptyMedia variant="icon">
+            <Store />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle>Store not found</EmptyTitle>
+            <EmptyDescription>
+              We couldn&apos;t find a store linked to this URL. Create one to
+              get started.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
@@ -74,8 +94,6 @@ export default function StorePage({ storeSlug }: StorePageProps) {
   // Mock orders data
   const orders: Order[] = [];
 
-  // Mock discounts data
-  const discounts: Discount[] = [];
 
   const handleProductClick = () => {
     // TODO: Implement product details navigation
@@ -149,12 +167,7 @@ export default function StorePage({ storeSlug }: StorePageProps) {
         )}
 
         {activeTab === "Discounts" && (
-          <DiscountsTab
-            discounts={discounts}
-            onCreateDiscount={handleCreateDiscount}
-            onCopyCode={handleCopyCode}
-            onDiscountClick={handleDiscountClick}
-          />
+          <DiscountsTab storeId={store?.id} />
         )}
 
         {activeTab === "Settings" && <SettingsTab />}
