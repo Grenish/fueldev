@@ -319,7 +319,7 @@ export default function CreateStore() {
       }
 
       // Background invalidate to sync with server (non-blocking)
-      utils.store.getMyStores.invalidate();
+      // utils.store.getMyStores.invalidate();
       toast.success("Store created successfully!");
       router.push(`/store/${slugifyStoreName(store.storeName)}`);
     } catch (error) {
