@@ -54,6 +54,12 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format, differenceInDays } from "date-fns";
 import { Switch } from "@/components/animate-ui/components/radix/switch";
+import { trpc } from "@/lib/trpc/react";
+import { toast } from "sonner";
+
+interface DiscountsTabProps {
+  storeId?: string;
+}
 
 const product = [
   {
@@ -88,13 +94,75 @@ const product = [
   },
 ];
 
-export function DiscountsTab() {
+export function DiscountsTab({ storeId }: DiscountsTabProps) {
   const uniqueCategories = [...new Set(product.map((p) => p.category))];
-  const [discountType, setDiscountType] = useState("fixed");
+  const [discountType, setDiscountType] = useState<"fixed" | "percent">(
+    "fixed",
+  );
   const [couponCode, setCouponCode] = useState("");
+  const [name, setName] = useState("");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountOn, setDiscountOn] = useState<"all" | "category">("all");
+  const [selectedCategory, setSelectedCategory] = useState(uniqueCategories[0]);
   const [expiryDate, setExpiryDate] = useState<Date>();
   const [limitQuantity, setLimitQuantity] = useState(false);
+  const [limitValue, setLimitValue] = useState("");
   const [hasExpiry, setHasExpiry] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const utils = trpc.useUtils();
+
+  const { data: coupons, isLoading } = trpc.store.getCoupons.useQuery(
+    { storeId: storeId! },
+    { enabled: !!storeId },
+  );
+
+  const createCoupon = trpc.store.createCoupon.useMutation({
+    onSuccess: () => {
+      utils.store.getCoupons.invalidate({ storeId });
+      setIsOpen(false);
+      toast.success("Coupon created successfully");
+      // Reset form
+      setName("");
+      setCouponCode("");
+      setDiscountValue("");
+      setExpiryDate(undefined);
+      setLimitValue("");
+      setHasExpiry(false);
+      setLimitQuantity(false);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!storeId) return;
+    if (!name || !couponCode || !discountValue) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (hasExpiry && !expiryDate) {
+      toast.error("Please select an expiry date");
+      return;
+    }
+
+    createCoupon.mutate({
+      storeId,
+      name,
+      couponCode,
+      discountType,
+      discountValue: Number(discountValue),
+      discountOn,
+      discountOnCategory:
+        discountOn === "category" ? selectedCategory : undefined,
+      limit: limitQuantity ? Number(limitValue) : undefined,
+      expiry: hasExpiry ? expiryDate : undefined,
+    });
+  };
+
+  if (!storeId) return null;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -103,7 +171,7 @@ export function DiscountsTab() {
           Create Discount
         </h2>
         <div className="grid grid-cols-3 gap-2 mt-2">
-          <Dialog>
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Card className="bg-transparent border border-primary hover:bg-primary/20 border-dashed shadow-none transition-colors duration-300 ease-in-out cursor-pointer">
                 <CardContent className="flex h-full flex-col items-center justify-center text-muted-foreground">
@@ -129,9 +197,11 @@ export function DiscountsTab() {
                     id="coupon-name"
                     type="text"
                     className="mt-2"
-                    placeholder="Coupone name"
+                    placeholder="Coupon name"
                     required
                     minLength={3}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                   />
                 </div>
 
@@ -161,8 +231,10 @@ export function DiscountsTab() {
 
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <Select
-                      defaultValue="fixed"
-                      onValueChange={setDiscountType}
+                      value={discountType}
+                      onValueChange={(v: "fixed" | "percent") =>
+                        setDiscountType(v)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -188,6 +260,8 @@ export function DiscountsTab() {
                         type="number"
                         placeholder={` ${discountType === "fixed" ? "100" : "10"}`}
                         required
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
                       />
                     </InputGroup>
                   </div>
@@ -195,7 +269,12 @@ export function DiscountsTab() {
                 <div className="mt-2">
                   <Label>Apply discount on</Label>
                   <div className="mt-2">
-                    <Tabs defaultValue="all">
+                    <Tabs
+                      value={discountOn}
+                      onValueChange={(v) =>
+                        setDiscountOn(v as "all" | "category")
+                      }
+                    >
                       <TabsList className="w-full">
                         <TabsTrigger value="all">All</TabsTrigger>
                         <TabsTrigger value="category">Category</TabsTrigger>
@@ -211,7 +290,10 @@ export function DiscountsTab() {
                         </InputGroup>
                       </TabsContent>
                       <TabsContent value="category">
-                        <Select defaultValue={uniqueCategories[0]}>
+                        <Select
+                          value={selectedCategory}
+                          onValueChange={setSelectedCategory}
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
@@ -229,7 +311,7 @@ export function DiscountsTab() {
                 </div>
                 <div className="mt-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="limited">Limit quality</Label>
+                    <Label htmlFor="limited">Limit quantity</Label>
                     <Switch
                       id="limited"
                       checked={limitQuantity}
@@ -241,7 +323,11 @@ export function DiscountsTab() {
                       <InputGroupAddon>
                         <Users />
                       </InputGroupAddon>
-                      <InputGroupInput placeholder="10" />
+                      <InputGroupInput
+                        placeholder="10"
+                        value={limitValue}
+                        onChange={(e) => setLimitValue(e.target.value)}
+                      />
                     </InputGroup>
                   )}
                 </div>
@@ -289,42 +375,42 @@ export function DiscountsTab() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Create Coupon</Button>
+                <Button
+                  type="submit"
+                  onClick={handleSubmit}
+                  disabled={createCoupon.isPending}
+                >
+                  {createCoupon.isPending ? "Creating..." : "Create Coupon"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
-          <CouponWidget
-            name="Black Friday Bundle"
-            code="BF2025"
-            discountAmount="50% OFF"
-            target="Bundles"
-            expiryDate="Nov 30, 2025"
-            serial="8839-1120"
-            status="active"
-            stats={{ claims: 1240, revenue: "$12.5k" }}
-          />
-
-          <CouponWidget
-            name="Influencer Promo"
-            code="JAKE10"
-            discountAmount="$10"
-            target="Accessories"
-            expiryDate="Dec 31, 2025"
-            serial="1102-3341"
-            status="inactive"
-            stats={{ claims: 5, revenue: "$50" }}
-          />
-          <CouponWidget
-            name="Influencer Promo"
-            code="JAKE10"
-            discountAmount="$10"
-            target="Accessories"
-            expiryDate="Dec 31, 2025"
-            serial="1102-3341"
-            status="expired"
-            stats={{ claims: 5, revenue: "$50" }}
-          />
+          {coupons?.map((coupon) => (
+            <CouponWidget
+              key={coupon.id}
+              name={coupon.name}
+              code={coupon.couponCode}
+              discountAmount={
+                coupon.discountType === "fixed"
+                  ? `₹${coupon.discountValue}`
+                  : `${coupon.discountValue}% OFF`
+              }
+              target={
+                coupon.discountOn === "all"
+                  ? "All Products"
+                  : coupon.discountOnCategory || "Category"
+              }
+              expiryDate={
+                coupon.expiry
+                  ? format(new Date(coupon.expiry), "MMM d, yyyy")
+                  : "Immortal"
+              }
+              serial={coupon.serial}
+              status={coupon.status as "active" | "inactive" | "expired"}
+              stats={{ claims: coupon.claims, total: coupon.limit || 0 }}
+            />
+          ))}
         </div>
       </div>
     </div>
