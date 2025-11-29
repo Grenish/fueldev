@@ -6,6 +6,7 @@ import ResetPasswordEmail from "@/emails/reset-password-email";
 import VerificationEmail from "@/emails/verification-email";
 import SecurityAlertEmail from "@/emails/security-alert-email";
 import AccountDeletedEmail from "@/emails/account-deleted-email";
+import WelcomeEmail from "@/emails/welcome-email";
 import { defaultAvatars, pickRandom } from "@/util/default";
 import type React from "react";
 
@@ -503,31 +504,62 @@ export const auth = betterAuth({
       update: {
         after: async (user) => {
           try {
-            // Only send alert for password changes
-            // Better Auth doesn't provide changed fields, so this sends on any update
-            // Consider implementing field change detection if needed
+            // Check if this is an email verification (emailVerified is now set)
+            // and account was created recently (within 1 hour)
+            const isRecentAccount =
+              user.createdAt &&
+              Date.now() - new Date(user.createdAt).getTime() < 60 * 60 * 1000;
 
-            sendEmailWithRetry(
-              {
-                from: RESEND_FROM,
-                to: user.email,
-                subject: "Your FuelDev account was updated",
-                react: SecurityAlertEmail({
-                  userEmail: user.email,
-                  alertType: "password_change",
-                  deviceInfo: "Unknown device",
-                  location: "Unknown location",
-                  timestamp: formatTimestamp(new Date()),
-                  ipAddress: "Unknown",
-                }),
-              },
-              user.id,
-            ).catch((error) => {
-              // Silent fail - don't block update
-              AuthLogger.error("Update Alert Email Failed", error, {
-                userId: user.id,
+            const isEmailVerification =
+              user.emailVerified && isRecentAccount;
+
+            if (isEmailVerification) {
+              // Send welcome email for newly verified accounts
+              const firstName = user.name?.split(" ")[0] || "Creator";
+
+              sendEmailWithRetry(
+                {
+                  from: RESEND_FROM,
+                  to: user.email,
+                  subject: "Welcome to FuelDev! Your journey starts now.",
+                  react: WelcomeEmail({ firstName }),
+                },
+                user.id,
+              ).catch((error) => {
+                AuthLogger.error("Welcome Email Failed", error, {
+                  userId: user.id,
+                });
               });
-            });
+
+              AuthLogger.info(
+                "Email Verified",
+                "Sent welcome email to newly verified user",
+                { userId: user.id },
+              );
+            } else if (!isRecentAccount) {
+              // Only send security alert for updates on established accounts
+              // Skip for recent accounts to avoid duplicate emails during signup flow
+              sendEmailWithRetry(
+                {
+                  from: RESEND_FROM,
+                  to: user.email,
+                  subject: "Your FuelDev account was updated",
+                  react: SecurityAlertEmail({
+                    userEmail: user.email,
+                    alertType: "password_change",
+                    deviceInfo: "Unknown device",
+                    location: "Unknown location",
+                    timestamp: formatTimestamp(new Date()),
+                    ipAddress: "Unknown",
+                  }),
+                },
+                user.id,
+              ).catch((error) => {
+                AuthLogger.error("Update Alert Email Failed", error, {
+                  userId: user.id,
+                });
+              });
+            }
           } catch (error) {
             // Log but don't block user update
             AuthLogger.error("User Update Hook Failed", error, {

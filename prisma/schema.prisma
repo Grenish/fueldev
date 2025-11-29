@@ -386,6 +386,12 @@ enum DiscountOn {
   category
 }
 
+enum Status {
+  expired
+  active
+  inactive
+}
+
 model CouponCode {
   id     String @id @default(cuid())
   serial String @unique
@@ -399,6 +405,9 @@ model CouponCode {
   discountValue      Int
   discountOn         DiscountOn   @default(all)
   discountOnCategory String?
+
+  status Status @default(active)
+  claims Int
 
   limit  Int?
   expiry DateTime?

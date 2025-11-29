@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugifyStoreName } from "@/lib/utils";
 import { Checkbox } from "@/components/animate-ui/components/radix/checkbox";
@@ -284,6 +284,17 @@ export default function CreateStore() {
         emailPolicy,
       });
 
+      // Optimistically seed the new store into cache so the redirect sees it immediately
+      const newStoreEntry = {
+        ...store,
+        storePolicy: null,
+        _count: { products: 0 },
+      };
+      utils.store.getMyStores.setData(undefined, (old) => [
+        newStoreEntry,
+        ...(old ?? []),
+      ]);
+
       if (logoFile) {
         try {
           const logoUrl = await uploadLogoToCloudinary(store.id, logoFile);
@@ -291,6 +302,12 @@ export default function CreateStore() {
             storeId: store.id,
             logoUrl,
           });
+          // Update cached store with uploaded logo
+          utils.store.getMyStores.setData(undefined, (old) =>
+            (old ?? []).map((s) =>
+              s.id === store.id ? { ...s, storeLogo: logoUrl } : s
+            )
+          );
         } catch (logoError) {
           console.error(logoError);
           toast.error(
@@ -301,7 +318,8 @@ export default function CreateStore() {
         }
       }
 
-      await utils.store.getMyStores.invalidate();
+      // Background invalidate to sync with server (non-blocking)
+      // utils.store.getMyStores.invalidate();
       toast.success("Store created successfully!");
       router.push(`/store/${slugifyStoreName(store.storeName)}`);
     } catch (error) {
@@ -361,8 +379,15 @@ export default function CreateStore() {
     );
   }
 
+  // Redirect to existing store if user already has one
+  useEffect(() => {
+    if (hasExistingStore && myStores?.[0]) {
+      router.push(`/store/${slugifyStoreName(myStores[0].storeName)}`);
+    }
+  }, [hasExistingStore, myStores, router]);
+
+  // Show nothing while redirecting to existing store
   if (hasExistingStore && myStores?.[0]) {
-    router.push(`/store/${slugifyStoreName(myStores[0].storeName)}`);
     return null;
   }
 

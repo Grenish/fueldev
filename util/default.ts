@@ -78,4 +78,14 @@ function generateCouponCode(): string {
   return res;
 }
 
-export { defaultAvatars, defaultStoreAvatars, pickRandom, generateCouponCode };
+function generateDiscountSerial(globalIndex: number): string {
+  const year = new Date().getFullYear();
+
+  const indexHex = globalIndex.toString(16).padStart(5, "0");
+
+  const randomPart = Math.floor(10000 + Math.random() * 90000);
+
+  return `${year} ${indexHex} ${randomPart}`;
+}
+
+export { defaultAvatars, defaultStoreAvatars, pickRandom, generateCouponCode, generateDiscountSerial };

@@ -10,6 +10,7 @@ import {
   TicketPercent,
   TrendingUp,
   Users,
+  NetworkIcon,
 } from "lucide-react";
 import {
   Card,
@@ -37,7 +38,7 @@ interface CouponWidgetProps {
   status: "active" | "inactive" | "expired";
   stats: {
     claims: number;
-    revenue: string;
+    total: number;
   };
   onEdit?: () => void;
   onDelete?: () => void;
@@ -51,7 +52,7 @@ export const CouponWidget = ({
   expiryDate = "2025-12-31",
   serial,
   status = "active",
-  stats = { claims: 120, revenue: "$4,500" },
+  stats = { claims: 120, total: 100 },
   onEdit,
   onDelete,
 }: CouponWidgetProps) => {
@@ -74,7 +75,7 @@ export const CouponWidget = ({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-4 pb-2">
         <div className="flex flex-col space-y-1">
           <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-            Serial: {serial || Math.floor(Math.random() * 10 ** 6)}
+            Serial: {serial}
           </span>
           <h3 className="font-semibold text-foreground leading-none tracking-tight">
             {name}
@@ -182,9 +183,11 @@ export const CouponWidget = ({
 
           <div className="flex flex-col items-center justify-center gap-1">
             <span className="text-[10px] font-medium text-muted-foreground uppercase flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> Rev
+              <NetworkIcon className="h-3 w-3" /> Total
             </span>
-            <span className="font-bold text-sm">{stats.revenue}</span>
+            <span className="font-bold text-sm">
+              {stats.total || "Not Set"}
+            </span>
           </div>
         </div>
       </CardFooter>
