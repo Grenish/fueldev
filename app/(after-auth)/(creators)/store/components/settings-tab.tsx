@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   InputGroup,
   InputGroupAddon,
@@ -28,11 +29,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { defaultStoreAvatars } from "@/util/default";
 import {
   Check,
   Download,
   Globe,
   Image as ImageIcon,
+  Layout,
   LayoutTemplate,
   Mail,
   Save,
@@ -43,6 +46,7 @@ import {
   Upload,
   VenetianMask,
 } from "lucide-react";
+import Image from "next/image";
 import { Streamdown } from "streamdown";
 
 export type StoreSettings = {
@@ -88,18 +92,42 @@ export function SettingsTab() {
 
                 <div className="flex items-center gap-2 w-full justify-center">
                   <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          className="h-8 w-8"
-                        >
-                          <LayoutTemplate className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Select preset</TooltipContent>
-                    </Tooltip>
+                    <Dialog>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon-sm"
+                              className="h-8 w-8"
+                            >
+                              <LayoutTemplate className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>Select preset</TooltipContent>
+                      </Tooltip>
+                      <DialogContent className="outline-none">
+                        <DialogHeader>
+                          <DialogTitle>Select preset</DialogTitle>
+                          <DialogDescription>
+                            Choose a list of logos to use as your store.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid grid-cols-4 gap-2">
+                          {defaultStoreAvatars.map((avatar) => (
+                            <Image
+                              key={avatar.id.toString()}
+                              src={avatar.url}
+                              alt={`Preset ${avatar.id}`}
+                              width={120}
+                              height={120}
+                              className="aspect-square rounded-lg border border-border bg-muted/50 flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+                            />
+                          ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
 
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -127,7 +155,7 @@ export function SettingsTab() {
                   </InputGroupAddon>
                   <InputGroupInput
                     id="store-name"
-                    placeholder="e.g. ACME's Digital Assets"
+                    placeholder="ACME's Digital Assets"
                   />
                 </InputGroup>
               </div>
