@@ -8,7 +8,6 @@ import {
   Calendar,
   Tag,
   TicketPercent,
-  TrendingUp,
   Users,
   NetworkIcon,
 } from "lucide-react";
