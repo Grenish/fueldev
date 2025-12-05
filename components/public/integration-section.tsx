@@ -5,105 +5,69 @@ import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { ShieldCheck } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function IntegrationSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const providersRef = useRef<HTMLDivElement[]>([]);
-  const lineRefs = useRef<HTMLDivElement[]>([]);
 
   const providers = [
-    { id: "gpay", name: "Google Pay", description: "Most used" },
-    { id: "phone-pe", name: "PhonePe", description: "Fastest growing" },
-    { id: "paytm", name: "Paytm", description: "Widely accepted" },
-    { id: "upi", name: "UPI", description: "Universal access" },
+    { id: "gpay", name: "Google Pay" },
+    { id: "phone-pe", name: "PhonePe" },
+    { id: "paytm", name: "Paytm" },
+    { id: "upi", name: "UPI" },
   ];
 
   useGSAP(
     () => {
-      // Simple fade in for header
       gsap.fromTo(
-        ".integration-header",
+        ".text-reveal",
+        { y: 30, opacity: 0 },
         {
-          opacity: 0,
-          y: 20,
-        },
-        {
-          opacity: 1,
           y: 0,
-          duration: 0.8,
-          ease: "power2.out",
+          opacity: 1,
+          duration: 1,
+          stagger: 0.1,
+          ease: "power3.out",
           scrollTrigger: {
-            trigger: ".integration-header",
-            start: "top 85%",
-            once: true,
+            trigger: containerRef.current,
+            start: "top 75%",
           },
         },
       );
 
-      // Animate connecting lines
-      lineRefs.current.forEach((line, idx) => {
-        if (!line) return;
-        gsap.fromTo(
-          line,
-          {
-            scaleX: 0,
-            transformOrigin: "left center",
-          },
-          {
-            scaleX: 1,
-            duration: 0.8,
-            delay: idx * 0.15,
-            ease: "power2.inOut",
-            scrollTrigger: {
-              trigger: line,
-              start: "top 85%",
-              once: true,
-            },
-          },
-        );
-      });
-
-      // Animate provider cards - simple and clean
-      providersRef.current.forEach((card, idx) => {
-        if (!card) return;
-
-        gsap.fromTo(
-          card,
-          {
-            opacity: 0,
-            x: idx % 2 === 0 ? -30 : 30,
-          },
-          {
-            opacity: 1,
-            x: 0,
-            duration: 0.8,
-            delay: idx * 0.12,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: card,
-              start: "top 85%",
-              once: true,
-            },
-          },
-        );
-      });
-
-      // Animate bottom section
+      // 2. Reveal the Glass Card (Scale + Fade)
       gsap.fromTo(
-        ".integration-bottom",
+        ".glass-card",
+        { y: 50, scale: 0.95, opacity: 0 },
         {
-          opacity: 0,
-        },
-        {
+          y: 0,
+          scale: 1,
           opacity: 1,
-          duration: 1,
-          ease: "power2.out",
+          duration: 1.2,
+          ease: "power3.out",
           scrollTrigger: {
-            trigger: ".integration-bottom",
-            start: "top 90%",
-            once: true,
+            trigger: ".glass-card",
+            start: "top 85%",
+          },
+        },
+      );
+
+      // 3. Stagger in the logos
+      gsap.fromTo(
+        ".provider-logo",
+        { y: 20, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.1,
+          delay: 0.2,
+          ease: "back.out(1.7)",
+          scrollTrigger: {
+            trigger: ".glass-card",
+            start: "top 85%",
           },
         },
       );
@@ -112,153 +76,74 @@ export default function IntegrationSection() {
   );
 
   return (
-    <section ref={containerRef} className="relative py-20 sm:py-24">
-      <div className="container mx-auto  max-w-7xl px-4 sm:px-6">
-        {/* Header - Clean and minimal */}
-        <div className="integration-header mb-20">
-          <div className="max-w-2xl">
-            <p className="text-sm font-medium text-muted-foreground mb-3">
-              Seamless Integration
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-4">
-              Payment infrastructure
-              <span className="text-muted-foreground"> that just works</span>
-            </h2>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              Accept payments through India&apos;s most trusted UPI apps. One
-              integration, complete coverage.
-            </p>
-          </div>
+    <section
+      ref={containerRef}
+      className="relative w-full py-24 sm:py-32 bg-background overflow-hidden"
+    >
+      <div className="container mx-auto max-w-5xl px-4 sm:px-6">
+        {/* Header - Simple & Clean */}
+        <div className="text-center mb-16 space-y-4">
+          <h2 className="text-reveal text-3xl sm:text-5xl font-bold tracking-tight text-foreground">
+            Payments, solved.
+          </h2>
+          <p className="text-reveal text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            One integration gives you access to the entire UPI ecosystem.
+            <br className="hidden sm:block" />
+            Simple, secure, and reliable.
+          </p>
         </div>
 
-        {/* Main Content - Asymmetric Grid */}
+        {/* The Premium Glass Card */}
         <div className="relative">
-          <div className="grid grid-cols-12 gap-4 sm:gap-6">
-            {/* Left side - Large feature */}
-            <div className="col-span-12 lg:col-span-5">
-              <div className="h-full flex flex-col justify-center space-y-8">
-                <div>
-                  <h3 className="text-5xl sm:text-6xl font-light mb-2">
-                    <span className="font-semibold">4</span>
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Major payment platforms
-                  </p>
-                </div>
+          {/* Subtle Glow Behind */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <p className="text-sm text-muted-foreground">
-                      Instant settlements
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <p className="text-sm text-muted-foreground">
-                      Zero setup fee
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <p className="text-sm text-muted-foreground">
-                      Industry-best success rates
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Center - Connecting lines */}
-            <div className="hidden lg:flex col-span-2 items-center justify-center">
-              <div className="relative h-full w-full flex items-center justify-center">
-                <div className="space-y-8">
-                  {[0, 1, 2, 3].map((idx) => (
-                    <div
-                      key={idx}
-                      ref={(el) => {
-                        if (el) lineRefs.current[idx] = el;
-                      }}
-                      className="h-px w-24 bg-linear-to-r from-transparent via-border to-transparent"
+          <div className="glass-card relative z-10 mx-auto max-w-4xl rounded-[2.5rem] border border-border/50 bg-background/50 backdrop-blur-xl shadow-2xl p-8 sm:p-12">
+            {/* The Logos Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 items-center justify-items-center mb-12">
+              {providers.map((provider) => (
+                <div
+                  key={provider.id}
+                  className="provider-logo group relative flex items-center justify-center w-full aspect-[3/2] transition-all duration-300 hover:scale-105"
+                >
+                  <div className="relative w-24 h-12 md:w-32 md:h-16 opacity-70 grayscale transition-all duration-500 group-hover:opacity-100 group-hover:grayscale-0">
+                    <Image
+                      alt={provider.name}
+                      src={`/${provider.id}.svg`} // Using your exact path structure
+                      fill
+                      className="object-contain"
                     />
-                  ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent mb-8 opacity-50" />
+
+            {/* Footer / Razorpay Info */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-2">
+              {/* Trust Badge */}
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/50 border border-border/50 text-xs font-medium text-muted-foreground">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Bank-grade Security</span>
+              </div>
+
+              {/* Powered By */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Powered by
+                </span>
+                <div className="relative w-24 h-6 opacity-80 hover:opacity-100 transition-opacity">
+                  <Image
+                    alt="Razorpay"
+                    src="/razorpay.svg"
+                    width={240}
+                    height={50}
+                    className="object-contain object-left sm:object-right"
+                  />
                 </div>
               </div>
-            </div>
-
-            {/* Right side - Provider cards */}
-            <div className="col-span-12 lg:col-span-5">
-              <div className="space-y-4">
-                {providers.map((provider, idx) => (
-                  <div
-                    key={provider.id}
-                    ref={(el) => {
-                      if (el) providersRef.current[idx] = el;
-                    }}
-                    className="group opacity-0"
-                  >
-                    <div className="flex items-center gap-4 p-4 rounded-xl border border-border/40 hover:border-border/60 transition-colors duration-300">
-                      <div className="relative w-12 h-12 flex items-center justify-center">
-                        <Image
-                          alt={provider.name}
-                          src={`/${provider.id}.svg`}
-                          width={32}
-                          height={32}
-                          className="object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-300"
-                        />
-                      </div>
-
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-foreground/90">
-                          {provider.name}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {provider.description}
-                        </p>
-                      </div>
-
-                      <div className="w-2 h-2 rounded-full bg-green-500/20 group-hover:bg-green-500/40 transition-colors duration-300">
-                        <div className="w-full h-full rounded-full bg-green-500 animate-pulse" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Section - Clean and professional */}
-        <div className="integration-bottom mt-24 pt-12 border-t border-border/20">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-8">
-              <div>
-                <p className="text-2xl font-semibold">99.9%</p>
-                <p className="text-xs text-muted-foreground mt-1">Uptime SLA</p>
-              </div>
-              <div className="h-8 w-px bg-border/40" />
-              <div>
-                <p className="text-2xl font-semibold">2.5s</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Avg. processing
-                </p>
-              </div>
-              <div className="h-8 w-px bg-border/40" />
-              <div>
-                <p className="text-2xl font-semibold">24/7</p>
-                <p className="text-xs text-muted-foreground mt-1">Support</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-muted-foreground">Powered by</p>
-              <Image
-                src="/razorpay.svg"
-                width={80}
-                height={28}
-                alt="Razorpay"
-                className="object-contain opacity-60 hover:opacity-100 transition-opacity duration-300"
-              />
             </div>
           </div>
         </div>
